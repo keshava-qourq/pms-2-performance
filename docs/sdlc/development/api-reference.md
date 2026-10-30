@@ -7,7 +7,28 @@ _No routes found._
 <!-- sdlc:auto:end endpoints -->
 
 <!-- sdlc:auto:start drift -->
-_Code matches the designed API._
+**Designed but missing:**
+
+- GET /admin/imports/{job_id}
+- GET /dashboard
+- GET /employees/{id}/goals
+- GET /feedback
+- GET /me
+- GET /notifications
+- PATCH /admin/employees/{id}
+- PATCH /goals/{id}/key-results/{kr_id}
+- POST /admin/employees
+- POST /admin/employees/{id}/erase
+- POST /admin/imports
+- POST /auth/login
+- POST /feedback
+- POST /feedback/requests
+- POST /goals
+- POST /goals/{id}/review
+- POST /goals/{id}/submit
+- POST /me/consent
+- POST /me/data-export
+- POST /notifications/{id}/read
 <!-- sdlc:auto:end drift -->
 
 <!-- sdlc:auto:start source -->

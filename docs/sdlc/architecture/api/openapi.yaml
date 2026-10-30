@@ -2,6 +2,601 @@
 openapi: 3.1.0
 info:
   title: PMS 2 performance
-  version: architecture-v0
+  version: architecture-v1
   description: Designed API from the approved architecture (not extracted from code).
-paths: {}
+paths:
+  /admin/employees:
+    post:
+      summary: HR Admin creates an employee profile with minimised required fields.
+      description: HR Admin creates an employee profile with minimised required fields.
+      operationId: post_admin_employees
+      parameters: []
+      requestBody:
+        content:
+          application/json:
+            schema:
+              type: object
+              description: '{name, email, role, manager_id?}'
+      responses:
+        '200':
+          description: '{employee}'
+      security:
+      - bearerAuth: []
+  /admin/employees/{id}:
+    patch:
+      summary: HR Admin edits a profile or changes manager assignment.
+      description: HR Admin edits a profile or changes manager assignment.
+      operationId: patch_admin_employees_id
+      parameters:
+      - name: id
+        in: path
+        required: true
+        schema:
+          type: string
+      requestBody:
+        content:
+          application/json:
+            schema:
+              type: object
+              description: '{fields}'
+      responses:
+        '200':
+          description: '{employee}'
+      security:
+      - bearerAuth: []
+  /admin/employees/{id}/erase:
+    post:
+      summary: HR Admin actions an approved erasure, removing/anonymising personal
+        data (GDPR).
+      description: HR Admin actions an approved erasure, removing/anonymising personal
+        data (GDPR).
+      operationId: post_admin_employees_id_erase
+      parameters:
+      - name: id
+        in: path
+        required: true
+        schema:
+          type: string
+      requestBody:
+        content:
+          application/json:
+            schema:
+              type: object
+              description: '-'
+      responses:
+        '200':
+          description: '{status}'
+      security:
+      - bearerAuth: []
+  /admin/imports:
+    post:
+      summary: HR Admin uploads a CSV for bulk create/update; queued for background
+        processing.
+      description: HR Admin uploads a CSV for bulk create/update; queued for background
+        processing.
+      operationId: post_admin_imports
+      parameters: []
+      requestBody:
+        content:
+          application/json:
+            schema:
+              type: object
+              description: multipart CSV
+      responses:
+        '200':
+          description: '{job_id, status}'
+      security:
+      - bearerAuth: []
+  /admin/imports/{job_id}:
+    get:
+      summary: Get CSV import summary including processed and failed rows with reasons.
+      description: Get CSV import summary including processed and failed rows with
+        reasons.
+      operationId: get_admin_imports_job_id
+      parameters:
+      - name: job_id
+        in: path
+        required: true
+        schema:
+          type: string
+      responses:
+        '200':
+          description: '{status, summary, failures}'
+      security:
+      - bearerAuth: []
+  /auth/login:
+    post:
+      summary: Authenticate with email and password, returns JWT and role landing.
+        Generic error on failure (NFR-001).
+      description: Authenticate with email and password, returns JWT and role landing.
+        Generic error on failure (NFR-001).
+      operationId: post_auth_login
+      parameters: []
+      requestBody:
+        content:
+          application/json:
+            schema:
+              type: object
+              description: '{email, password}'
+      responses:
+        '200':
+          description: '{access_token, role}'
+  /dashboard:
+    get:
+      summary: Personal dashboard of own active goals and progress; served from cache.
+      description: Personal dashboard of own active goals and progress; served from
+        cache.
+      operationId: get_dashboard
+      parameters: []
+      responses:
+        '200':
+          description: '{goals[], summary}'
+      security:
+      - bearerAuth: []
+  /employees/{id}/goals:
+    get:
+      summary: Manager views a direct report's goals; denied for non-reports.
+      description: Manager views a direct report's goals; denied for non-reports.
+      operationId: get_employees_id_goals
+      parameters:
+      - name: id
+        in: path
+        required: true
+        schema:
+          type: string
+      responses:
+        '200':
+          description: '{goals[]}'
+      security:
+      - bearerAuth: []
+  /feedback:
+    get:
+      summary: View feedback given and received by the current user; others denied.
+      description: View feedback given and received by the current user; others denied.
+      operationId: get_feedback
+      parameters: []
+      responses:
+        '200':
+          description: '{feedback[]}'
+      security:
+      - bearerAuth: []
+    post:
+      summary: Write feedback for a colleague; empty content rejected.
+      description: Write feedback for a colleague; empty content rejected.
+      operationId: post_feedback
+      parameters: []
+      requestBody:
+        content:
+          application/json:
+            schema:
+              type: object
+              description: '{recipient_id, content, request_id?}'
+      responses:
+        '200':
+          description: '{feedback}'
+      security:
+      - bearerAuth: []
+  /feedback/requests:
+    post:
+      summary: Request feedback from a colleague.
+      description: Request feedback from a colleague.
+      operationId: post_feedback_requests
+      parameters: []
+      requestBody:
+        content:
+          application/json:
+            schema:
+              type: object
+              description: '{target_id}'
+      responses:
+        '200':
+          description: '{request}'
+      security:
+      - bearerAuth: []
+  /goals:
+    post:
+      summary: Employee creates an objective with one or more key results.
+      description: Employee creates an objective with one or more key results.
+      operationId: post_goals
+      parameters: []
+      requestBody:
+        content:
+          application/json:
+            schema:
+              type: object
+              description: '{title, description?, key_results[]}'
+      responses:
+        '200':
+          description: '{goal}'
+      security:
+      - bearerAuth: []
+  /goals/{id}/key-results/{kr_id}:
+    patch:
+      summary: Update a key result value or status; recalculates goal progress.
+      description: Update a key result value or status; recalculates goal progress.
+      operationId: patch_goals_id_key_results_kr_id
+      parameters:
+      - name: id
+        in: path
+        required: true
+        schema:
+          type: string
+      - name: kr_id
+        in: path
+        required: true
+        schema:
+          type: string
+      requestBody:
+        content:
+          application/json:
+            schema:
+              type: object
+              description: '{current_value?, status?}'
+      responses:
+        '200':
+          description: '{goal, progress}'
+      security:
+      - bearerAuth: []
+  /goals/{id}/review:
+    post:
+      summary: Manager approves or requests changes on a direct report's goal.
+      description: Manager approves or requests changes on a direct report's goal.
+      operationId: post_goals_id_review
+      parameters:
+      - name: id
+        in: path
+        required: true
+        schema:
+          type: string
+      requestBody:
+        content:
+          application/json:
+            schema:
+              type: object
+              description: '{decision, comment?}'
+      responses:
+        '200':
+          description: '{approval_status}'
+      security:
+      - bearerAuth: []
+  /goals/{id}/submit:
+    post:
+      summary: Submit a goal for manager approval.
+      description: Submit a goal for manager approval.
+      operationId: post_goals_id_submit
+      parameters:
+      - name: id
+        in: path
+        required: true
+        schema:
+          type: string
+      requestBody:
+        content:
+          application/json:
+            schema:
+              type: object
+              description: '-'
+      responses:
+        '200':
+          description: '{approval_status}'
+      security:
+      - bearerAuth: []
+  /me:
+    get:
+      summary: Return the current user's own profile and assigned manager.
+      description: Return the current user's own profile and assigned manager.
+      operationId: get_me
+      parameters: []
+      responses:
+        '200':
+          description: '{employee}'
+      security:
+      - bearerAuth: []
+  /me/consent:
+    post:
+      summary: Record or update a consent status for a processing purpose.
+      description: Record or update a consent status for a processing purpose.
+      operationId: post_me_consent
+      parameters: []
+      requestBody:
+        content:
+          application/json:
+            schema:
+              type: object
+              description: '{purpose, status}'
+      responses:
+        '200':
+          description: '{consent}'
+      security:
+      - bearerAuth: []
+  /me/data-export:
+    post:
+      summary: Request an export of own profile, goals and feedback data (GDPR access).
+      description: Request an export of own profile, goals and feedback data (GDPR
+        access).
+      operationId: post_me_data_export
+      parameters: []
+      requestBody:
+        content:
+          application/json:
+            schema:
+              type: object
+              description: '-'
+      responses:
+        '200':
+          description: '{job_id}'
+      security:
+      - bearerAuth: []
+  /notifications:
+    get:
+      summary: List current user's in-app notifications.
+      description: List current user's in-app notifications.
+      operationId: get_notifications
+      parameters: []
+      responses:
+        '200':
+          description: '{notifications[]}'
+      security:
+      - bearerAuth: []
+  /notifications/{id}/read:
+    post:
+      summary: Mark a notification as read.
+      description: Mark a notification as read.
+      operationId: post_notifications_id_read
+      parameters:
+      - name: id
+        in: path
+        required: true
+        schema:
+          type: string
+      requestBody:
+        content:
+          application/json:
+            schema:
+              type: object
+              description: '-'
+      responses:
+        '200':
+          description: '{is_read}'
+      security:
+      - bearerAuth: []
+components:
+  securitySchemes:
+    bearerAuth:
+      type: http
+      scheme: bearer
+  schemas:
+    employees:
+      type: object
+      properties:
+        id:
+          type: string
+          format: uuid
+        name:
+          type: string
+        email:
+          type: string
+        password_hash:
+          type: string
+        role:
+          type: string
+        manager_id:
+          type: string
+          format: uuid
+        status:
+          type: string
+        is_anonymised:
+          type: boolean
+        created_at:
+          type: string
+          format: date-time
+        updated_at:
+          type: string
+          format: date-time
+      required:
+      - id
+      - name
+      - email
+      - role
+      - status
+      - is_anonymised
+      - created_at
+      - updated_at
+    goals:
+      type: object
+      properties:
+        id:
+          type: string
+          format: uuid
+        employee_id:
+          type: string
+          format: uuid
+        title:
+          type: string
+        description:
+          type: string
+        status:
+          type: string
+        progress:
+          type: number
+        approval_status:
+          type: string
+        created_at:
+          type: string
+          format: date-time
+      required:
+      - id
+      - employee_id
+      - title
+      - status
+      - progress
+      - approval_status
+      - created_at
+    key_results:
+      type: object
+      properties:
+        id:
+          type: string
+          format: uuid
+        goal_id:
+          type: string
+          format: uuid
+        title:
+          type: string
+        target_value:
+          type: number
+        current_value:
+          type: number
+        status:
+          type: string
+      required:
+      - id
+      - goal_id
+      - title
+      - current_value
+      - status
+    feedback:
+      type: object
+      properties:
+        id:
+          type: string
+          format: uuid
+        author_id:
+          type: string
+          format: uuid
+        recipient_id:
+          type: string
+          format: uuid
+        request_id:
+          type: string
+          format: uuid
+        content:
+          type: string
+        created_at:
+          type: string
+          format: date-time
+      required:
+      - id
+      - author_id
+      - recipient_id
+      - content
+      - created_at
+    feedback_requests:
+      type: object
+      properties:
+        id:
+          type: string
+          format: uuid
+        requester_id:
+          type: string
+          format: uuid
+        target_id:
+          type: string
+          format: uuid
+        status:
+          type: string
+        created_at:
+          type: string
+          format: date-time
+      required:
+      - id
+      - requester_id
+      - target_id
+      - status
+      - created_at
+    notifications:
+      type: object
+      properties:
+        id:
+          type: string
+          format: uuid
+        user_id:
+          type: string
+          format: uuid
+        type:
+          type: string
+        message:
+          type: string
+        is_read:
+          type: boolean
+        created_at:
+          type: string
+          format: date-time
+      required:
+      - id
+      - user_id
+      - type
+      - message
+      - is_read
+      - created_at
+    consents:
+      type: object
+      properties:
+        id:
+          type: string
+          format: uuid
+        employee_id:
+          type: string
+          format: uuid
+        purpose:
+          type: string
+        status:
+          type: string
+        recorded_at:
+          type: string
+          format: date-time
+      required:
+      - id
+      - employee_id
+      - purpose
+      - status
+      - recorded_at
+    csv_import_jobs:
+      type: object
+      properties:
+        id:
+          type: string
+          format: uuid
+        uploaded_by:
+          type: string
+          format: uuid
+        s3_key:
+          type: string
+        status:
+          type: string
+        summary:
+          type: string
+        created_at:
+          type: string
+          format: date-time
+      required:
+      - id
+      - uploaded_by
+      - s3_key
+      - status
+      - created_at
+    audit_logs:
+      type: object
+      properties:
+        id:
+          type: string
+          format: uuid
+        actor_id:
+          type: string
+          format: uuid
+        action:
+          type: string
+        entity:
+          type: string
+        entity_id:
+          type: string
+        details:
+          type: string
+        created_at:
+          type: string
+          format: date-time
+      required:
+      - id
+      - action
+      - entity
+      - created_at
