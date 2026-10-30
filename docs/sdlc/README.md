@@ -5,7 +5,7 @@
 <!-- sdlc:auto:start overview -->
 build a performance management system
 
-**Documentation version:** v2
+**Documentation version:** v3
 <!-- sdlc:auto:end overview -->
 
 ## Contents
@@ -15,14 +15,14 @@ build a performance management system
 |---|---|
 | [Requirements](requirements/README.md) | v1 approved |
 | [Architecture](architecture/README.md) | 15 entries |
-| [Development](development/README.md) | 1 entry |
+| [Development](development/README.md) | 13 entries |
 | [Testing](testing/README.md) | 1 entry |
 | [Deployment](deployment/README.md) | 1 entry |
 | [Maintenance](maintenance/README.md) | 1 entry |
 | [Data model](architecture/data-model.md) | generated |
 | [API (OpenAPI)](architecture/api/openapi.yaml) | generated |
 | [Decisions (ADRs)](architecture/adr/README.md) | 4 decisions |
-| [Sprint plan](development/sprint-plan.md) | not generated yet |
+| [Sprint plan](development/sprint-plan.md) | 5 sprints |
 | [Developer guide](development/developer-guide.md) | generated |
 | [API reference](development/api-reference.md) | 1 route |
 | [Test report](testing/test-report.md) | not run yet |
@@ -31,7 +31,7 @@ build a performance management system
 | [Runbook](deployment/runbook.md) | not deployed yet |
 | [Release notes](deployment/release-notes.md) | 0 releases |
 | [Traceability matrix](traceability-matrix.md) | 17 requirements |
-| [Changelog](CHANGELOG.md) | 2 versions |
+| [Changelog](CHANGELOG.md) | 3 versions |
 <!-- sdlc:auto:end contents -->
 
 ## Open gaps
@@ -58,7 +58,20 @@ build a performance management system
 
 ### Development
 
-- Development phase has not started -- no code, tickets, or sprint plans exist yet for any of the 17 approved user stories.
+- No approver identity or approval date given.
+- No explicit per-item sprint assignment was provided in the input -- sprint item lists in this documentation are inferred from matching sprint goal text to story titles, not from a direct mapping field.
+- No status (not started/in progress/done) reported for any item in this sprint.
+- Item-to-sprint assignment is inferred, not stated explicitly in the input.
+- No status reported for any item in this sprint.
+- Inferred points (19) do not exactly match stated capacity (20) -- may indicate an unlisted or differently-scoped item.
+- Inferred points (19) do not exactly match stated capacity (20).
+- Inferred points (18) do not exactly match stated capacity (20).
+- No status reported for this sprint's item.
+- Inferred points (5) are well below stated capacity (20) -- either additional unlisted work is planned for this sprint or capacity is significantly underutilized; input does not clarify which.
+- No completion/test status reported for any item in this epic.
+- No completion/test status reported for this item.
+- No detail given on which events (feedback requests, goal updates) trigger notifications beyond the Sprint 5 goal text.
+- No explicit compliance framework or control checklist was supplied to confirm these stories fully satisfy GDPR obligations -- this needs human legal/compliance confirmation.
 
 ### Testing
 
