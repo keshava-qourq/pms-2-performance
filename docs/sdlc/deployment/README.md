@@ -5,9 +5,9 @@
 <!-- sdlc:auto:start narrative -->
 ### DEPLOY-000 · draft
 
-No deployment has been recorded yet for this project.
+No deployment has been recorded for this project yet.
 
-Deployment phase has not started. No environment, release, or infrastructure provisioning records exist.
+No deployment attempts, environments, release versions, or rollout outcomes were provided in the input, despite deployment nodes being specified in the architecture.
 
-- ⚠ No deployment recorded yet -- AWS environment, RDS PostgreSQL, S3 bucket, and Redis provisioning have not been documented.
+- ⚠ Deployment phase has not started: no deployment records, environments, or release history were provided.
 <!-- sdlc:auto:end narrative -->

@@ -5,102 +5,62 @@
 <!-- sdlc:auto:start narrative -->
 ## Overview
 
-### ARCH-overview · approved · source: architecture:summary
+### ARCH-001 · approved · source: architecture:overview
 
-Approved (v1) architecture for a lightweight performance management system serving a single multi-region org of up to a few thousand employees, on React 19 + FastAPI 0.115 + PostgreSQL 16 + AWS.
+Approved v1 architecture: React 19 SPA, FastAPI 0.115 REST API, PostgreSQL 16, Redis (cache+queue), an arq background worker, and S3, hosted on AWS in the EU region for GDPR residency.
 
-The system exposes REST APIs for email/password auth with JWT, RBAC across Employee/Manager/HR Admin, employee profiles and reporting hierarchy, CSV bulk import, OKR-style goals with key results and manager approval, continuous feedback and feedback requests, personal dashboards, in-app notifications, and GDPR-level data access/export/erasure/consent. A Redis-backed arq worker handles background work (CSV import, scheduled reminders, notification fan-out); Redis also caches dashboard aggregates and sessions. S3 holds uploaded CSVs and generated exports in the chosen EU region with encryption at rest/in transit and access audit logging for GDPR-level compliance.
+Components: web (React 19 SPA — sign-in, dynamic goal/feedback forms, dashboards, directory, CSV upload, notifications, GDPR export requests); api (FastAPI 0.115 — auth, RBAC, profiles/hierarchy, goals/approval, feedback, notifications, dashboards, GDPR access/export/erasure/consent; validates/minimises input, writes audit logs, enqueues jobs); worker (FastAPI/arq — CSV import with per-row validation, reminders, notification fan-out, GDPR export/erasure processing); db (PostgreSQL 16 — employees, hierarchy, goals, key results, feedback, consents, audit logs; encrypted at rest, EU-hosted); redis (Redis 7 — dashboard/session cache + job queue); s3 (S3 — CSV uploads and generated exports, EU region, server-side encryption).
+Entities: employees, goals, key_results, feedback, feedback_requests, notifications, consents, csv_import_jobs, audit_logs.
+Endpoints: POST /auth/login; GET /me; POST /admin/employees; PATCH /admin/employees/{id}; POST /admin/imports; GET /admin/imports/{job_id}; POST /goals; PATCH /goals/{id}/key-results/{kr_id}; POST /goals/{id}/submit; GET /employees/{id}/goals; POST /goals/{id}/review; GET /dashboard; POST /feedback; POST /feedback/requests; GET /feedback; GET /notifications; POST /notifications/{id}/read; POST /me/data-export; POST /admin/employees/{id}/erase; POST /me/consent.
+Deployment nodes: web static hosting (S3+CloudFront); API service (ECS Fargate, uvicorn); Worker service (ECS Fargate, arq); Database (RDS PostgreSQL 16); Cache & queue (Redis 7 container); Object storage (S3 bucket, EU region, SSE enabled).
 
-- ⚠ No requirements-phase input was supplied alongside this architecture, so explicit links from architecture decisions to US-001..US-017 cannot be confirmed -- only inferred from functional description.
-- ⚠ No approver name or approval date given for the v1 architecture sign-off.
+**Related:** EPIC-001, EPIC-002, EPIC-003, EPIC-004, EPIC-005, EPIC-006, EPIC-007
 
-### ARCH-component-web · approved · source: architecture:components:web
+### ARCH-002 · approved · source: architecture:critical_path:sign-in-rbac
 
-React 19 responsive SPA is the single front-end for all three roles (Employee/Manager/HR Admin).
+Sign-in and RBAC enforcement critical path: JWT-based auth followed by per-request role and manager-report authorisation.
 
-Provides sign-in, dynamic goal/feedback forms, personal dashboards with charts, employee directory, CSV upload, notifications, and GDPR data export requests. Role-aware UI adapts to Employee/Manager/HR Admin permissions.
+User signs in via POST /auth/login with email/password and receives a JWT; every subsequent request is authorised against the user's role (employees table) and the manager-report relationship (manager_id). A failed sign-in returns a single non-revealing error, satisfying NFR-001.
 
-### ARCH-component-api · approved · source: architecture:components:api
+**Related:** EPIC-001, US-001, US-002, NFR-001, NFR-002
 
-FastAPI 0.115 backend is the sole REST API surface and enforcement point for RBAC, validation and audit logging.
+### ARCH-003 · approved · source: architecture:critical_path:csv-import
 
-Handles authentication, RBAC enforcement, profiles and hierarchy, goals/key results and approval, feedback, notifications, dashboards and GDPR access/export/erasure/consent. Validates and minimises input, writes audit logs, and enqueues background jobs rather than doing batch work inline.
+CSV bulk import critical path: file goes to S3, a background job validates and applies rows, failures are isolated and reported.
 
-### ARCH-component-worker · approved · source: architecture:components:worker
+HR Admin uploads a CSV via POST /admin/imports; the file is stored in S3 (csv_import_jobs.s3_key) and the import is queued. A background worker job validates each row and creates/updates employees and reporting relationships; only failing rows are rejected, leaving valid rows intact (NFR-009). GET /admin/imports/{job_id} returns the processed/failed summary with reasons. This matches NFR-006's requirement that batch work run off the request path.
 
-A FastAPI-based arq worker, backed by Redis, processes all queued and scheduled background jobs.
+**Related:** EPIC-002, US-005, NFR-006, NFR-009
 
-Responsibilities: CSV bulk import/update with per-row validation; deadline and feedback-request reminders plus in-app notification fan-out; and GDPR export/erasure processing. Decouples slow/batch work from the synchronous API request path.
+### ARCH-004 · approved · source: architecture:critical_path:goal-approval
 
-### ARCH-component-db · approved · source: architecture:components:db
+Goal creation and manager approval critical path, from objective creation through progress tracking to manager review.
 
-PostgreSQL 16 is the system of record for all relational data, hosted in the EU region for GDPR residency.
+POST /goals creates an objective with one or more key results. PATCH /goals/{id}/key-results/{kr_id} updates a key result's progress/status and recalculates overall goal progress. POST /goals/{id}/submit submits the goal for approval. GET /employees/{id}/goals lets a manager view a direct report's goals (denied for non-reports). POST /goals/{id}/review lets the manager approve or request changes; the employee sees the outcome plus a notification.
 
-Stores employees, reporting hierarchy, goals, key results, feedback, feedback requests, notifications, consents and audit logs with referential integrity and transactional correctness. Encrypted at rest.
+**Related:** EPIC-003, US-007, US-008, US-009
 
-### ARCH-component-redis · approved · source: architecture:components:redis
+### ARCH-005 · approved · source: architecture:critical_path:gdpr
 
-Redis 7 serves two roles: cache for aggregates/sessions, and the job queue backing the worker.
+GDPR data export and erasure critical path, with all access/erasure actions audit-logged and data held in the EU region.
 
-Caches org-wide/dashboard aggregate results and user sessions to speed up read-heavy dashboard views; also backs the background job queue used by the arq worker for batch and scheduled work.
+POST /me/data-export lets an employee request an export of their profile, goals and feedback data; the worker processes GDPR export/erasure jobs. POST /admin/employees/{id}/erase lets an HR Admin action an approved erasure, removing or anonymising personal data per retention policy. POST /me/consent records/updates consent status per processing purpose. All access and erasure actions are written to audit_logs. Data sits in RDS (PostgreSQL 16) and S3, both EU-region, encrypted at rest and in transit.
 
-### ARCH-component-s3 · approved · source: architecture:components:s3
+**Related:** EPIC-007, US-015, US-016, US-017, NFR-003, NFR-004
 
-Amazon S3 durably stores uploaded CSV import files and generated CSV data exports, separate from the database.
+- ⚠ Architecture does not specify the export delivery mechanism in detail (e.g., synchronous response vs. async download link) beyond 'worker processes ... GDPR export/erasure processing'.
 
-Located in the chosen GDPR (EU) region with server-side encryption enabled.
+### ARCH-006 · approved · source: architecture:technology_decisions
 
-### ARCH-critical-path-auth-rbac · approved · source: architecture:critical_paths:sign-in-rbac
+Architecture's chosen stack matches the product-owner-approved stack from requirements exactly, with documented rejected alternatives.
 
-Defines the sign-in and per-request authorisation flow underpinning all role-gated functionality.
+- Frontend: React 19 (alternatives considered: Vue, Angular) — renders the form-heavy, role-aware SPA (goal/key-result forms, feedback forms, three role dashboards, CSV upload).
+- Backend: FastAPI 0.115 (alternatives: Django REST Framework, Flask) — hosts RBAC, goal approval flow, CSV import and GDPR export/erasure logic; Pydantic validation enforces data minimisation and strict input handling.
+- Database: PostgreSQL 16 (alternatives: MySQL, SQL Server) — enforces the relational model (employees, hierarchy, goals, key results, feedback) transactionally and supports row-level controls/auditability for GDPR.
+- Cloud: AWS (alternatives: Azure, GCP) — keeps data in a chosen EU region with managed RDS, S3 and VPC networking for an internal tool.
+No discrepancies found between the requirements-approved stack/services and the architecture's chosen components.
 
-User signs in with email and password via POST /auth/login, receives a JWT, and every subsequent request is authorised against the user's role and the manager-report relationship. Failed sign-in returns a single non-revealing error (tagged NFR-001 in the endpoint spec).
-
-- ⚠ No explicit requirement id is attached to NFR-001 or this path in the provided input; likely maps to an auth/security-related user story but this cannot be confirmed without requirements-phase input.
-
-### ARCH-critical-path-csv-import · approved · source: architecture:critical_paths:csv-bulk-import
-
-HR Admin bulk-creates/updates employees and reporting relationships via an asynchronously validated CSV upload.
-
-HR Admin uploads a CSV to S3 (POST /admin/imports); a background job (worker) validates each row, creates/updates employees and reporting relationships, rejects only failing rows, and records a processed summary without corrupting valid records. Summary retrievable via GET /admin/imports/{job_id}.
-
-### ARCH-critical-path-goal-approval · approved · source: architecture:critical_paths:goal-creation-approval
-
-Employee creates an OKR-style goal, tracks progress via key results, and submits it for manager approval.
-
-Employee creates an objective with key results, updates progress which recalculates overall goal progress, then submits for approval. The manager (only for direct reports) approves or requests changes; the employee sees the outcome plus a notification.
-
-### ARCH-critical-path-gdpr · approved · source: architecture:critical_paths:gdpr-export-erasure
-
-GDPR: employee data export (right of access) and HR-actioned erasure, both fully audit-logged.
-
-An employee requests an export of their profile, goals and feedback (POST /me/data-export). An HR Admin actions an approved erasure which removes or anonymises personal data per retention policy (POST /admin/employees/{id}/erase). All access and erasure actions are audit-logged (audit_logs entity).
-
-- ⚠ GDPR: 'right to erasure' and 'right of access' controls -- the architecture documents export/erasure/audit-logging mechanisms, but retention-policy specifics (how long data is kept before/after erasure) are referenced only generically as 'per retention policy' with no concrete policy definition in this input.
-
-### ARCH-data-model · approved · source: architecture:entities
-
-Nine core entities define the relational data model: employees, goals, key_results, feedback, feedback_requests, notifications, consents, csv_import_jobs, audit_logs.
-
-employees(id, name, email, password_hash, role, manager_id, status, is_anonymised, created_at, updated_at); goals(id, employee_id, title, description, status, progress, approval_status, created_at); key_results(id, goal_id, title, target_value, current_value, status); feedback(id, author_id, recipient_id, request_id, content, created_at); feedback_requests(id, requester_id, target_id, status, created_at); notifications(id, user_id, type, message, is_read, created_at); consents(id, employee_id, purpose, status, recorded_at); csv_import_jobs(id, uploaded_by, s3_key, status, summary, created_at); audit_logs(id, actor_id, action, entity, entity_id, details, created_at). Note: employees.is_anonymised directly supports the GDPR erasure critical path.
-
-### ARCH-api-endpoints · approved · source: architecture:endpoints
-
-19 REST endpoints cover auth, profile/admin management, CSV import, goals/approval, dashboards, feedback, notifications and GDPR actions.
-
-Auth/profile: POST /auth/login (generic failure error, NFR-001), GET /me. Admin: POST /admin/employees, PATCH /admin/employees/{id}, POST /admin/imports, GET /admin/imports/{job_id}. Goals: POST /goals, PATCH /goals/{id}/key-results/{kr_id} (recalculates progress), POST /goals/{id}/submit, GET /employees/{id}/goals (manager-only, denied for non-reports), POST /goals/{id}/review. Dashboard: GET /dashboard (served from cache). Feedback: POST /feedback (empty content rejected), POST /feedback/requests, GET /feedback (own only, others denied). Notifications: GET /notifications, POST /notifications/{id}/read. GDPR: POST /me/data-export, POST /admin/employees/{id}/erase, POST /me/consent.
-
-### ARCH-deployment · approved · source: architecture:deployment_nodes
-
-Deployment topology: static web hosting + Fargate services + managed data stores, all on AWS.
-
-Web: S3 + CloudFront static hosting serving the React 19 build. API: ECS Fargate running FastAPI 0.115 on uvicorn. Worker: ECS Fargate running the FastAPI/arq background worker. Database: RDS PostgreSQL 16. Cache & queue: Redis (redis:7-alpine container). Object storage: S3 bucket in the EU region with SSE enabled.
-
-### ARCH-tech-decisions · approved · source: architecture:technology_decisions
-
-Four stack decisions were made, each with alternatives considered and a stated rationale tied to the system's needs.
-
-Frontend: React 19 (vs Vue, Angular) -- chosen to render the form-heavy, role-aware interface (dynamic goal/key-result and feedback forms, three role dashboards with charts, CSV upload) as a responsive SPA for desktop and mobile. Backend: FastAPI 0.115 (vs Django REST Framework, Flask) -- chosen to host business logic (RBAC, goal approval flow, CSV import, GDPR export/erasure) with Pydantic validation enforcing data minimisation and strict input handling. Database: PostgreSQL 16 (vs MySQL, SQL Server) -- chosen for the highly relational model (employees, hierarchy, goals, key results, feedback), transactional integrity, dashboard aggregation queries, and row-level controls/auditability for GDPR. Cloud: AWS (vs Azure, GCP) -- chosen to keep all data in a single EU region using managed RDS, S3 and VPC networking for an internal tool with GDPR residency and deletion requirements.
+**Related:** REQ-SCOPE
 <!-- sdlc:auto:end narrative -->
 
 <!-- sdlc:auto:start building-blocks -->

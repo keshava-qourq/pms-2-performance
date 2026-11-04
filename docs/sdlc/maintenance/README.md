@@ -5,9 +5,9 @@
 <!-- sdlc:auto:start narrative -->
 ### MAINT-000 · draft
 
-No post-deployment or maintenance activity has been recorded yet for this project.
+No post-deployment or maintenance activity has been recorded.
 
-Maintenance phase has not started, consistent with the absence of any deployment.
+No incidents, support tickets, patches, or operational notes were provided in the input.
 
-- ⚠ No maintenance notes exist yet because the application has not been deployed.
+- ⚠ Maintenance phase has not started: the system has not reached post-deployment, so there is nothing to report.
 <!-- sdlc:auto:end narrative -->

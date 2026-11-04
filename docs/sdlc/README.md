@@ -5,7 +5,7 @@
 <!-- sdlc:auto:start overview -->
 build a performance management system
 
-**Documentation version:** v3
+**Documentation version:** v1
 <!-- sdlc:auto:end overview -->
 
 ## Contents
@@ -14,8 +14,8 @@ build a performance management system
 | Document | State |
 |---|---|
 | [Requirements](requirements/README.md) | v1 approved |
-| [Architecture](architecture/README.md) | 15 entries |
-| [Development](development/README.md) | 13 entries |
+| [Architecture](architecture/README.md) | 6 entries |
+| [Development](development/README.md) | 5 entries |
 | [Testing](testing/README.md) | 1 entry |
 | [Deployment](deployment/README.md) | 1 entry |
 | [Maintenance](maintenance/README.md) | 1 entry |
@@ -23,15 +23,15 @@ build a performance management system
 | [API (OpenAPI)](architecture/api/openapi.yaml) | generated |
 | [Decisions (ADRs)](architecture/adr/README.md) | 4 decisions |
 | [Sprint plan](development/sprint-plan.md) | 5 sprints |
-| [Developer guide](development/developer-guide.md) | generated |
-| [API reference](development/api-reference.md) | 1 route |
+| [Developer guide](development/developer-guide.md) | not generated yet |
+| [API reference](development/api-reference.md) | 0 routes |
 | [Test report](testing/test-report.md) | not run yet |
 | [Tests](testing/test-cases.md) | 0 tests |
 | [Deployment guide](deployment/deployment-guide.md) | not deployed yet |
 | [Runbook](deployment/runbook.md) | not deployed yet |
 | [Release notes](deployment/release-notes.md) | 0 releases |
 | [Traceability matrix](traceability-matrix.md) | 17 requirements |
-| [Changelog](CHANGELOG.md) | 3 versions |
+| [Changelog](CHANGELOG.md) | 1 version |
 <!-- sdlc:auto:end contents -->
 
 ## Open gaps
@@ -39,49 +39,30 @@ build a performance management system
 <!-- sdlc:auto:start open-gaps -->
 ### Requirements
 
-- AC-006 explicitly flags the exact permission matrix per role as unrefined -- needs a definitive role/action matrix before design.
-- SSO is deferred per AC-003; confirm this remains acceptable for go-live before architecture begins.
-- HRIS sync (originally BambooHR) is confirmed out of scope -- no gap, but noted here for traceability since it was an open assumption in US-005.
-- The full set of goal/approval status values (e.g. draft, submitted, approved, changes-requested, complete, closed) is not enumerated -- needed before data modeling.
-- The organisation's specific data retention policy referenced in AC-037 is not itself defined in the inputs -- needed to implement erasure correctly.
-- The mechanism and UI for recording/retrieving consent status (AC-040) is not detailed beyond 'recorded and retrievable'.
-- GDPR-level requirements (US-015/016/017, NFR-004) have no architecture, implementation, or test coverage yet since those phases have not started -- compliance cannot be confirmed end-to-end until they do.
-- None of the NFRs have yet been verified against an architecture or test plan since those phases have not started.
-- No architecture documentation exists yet to show how these approved technologies are actually composed into services/components.
+- AC-006 notes the exact permission matrix per role is still 'to be refined' — not finalized anywhere in this input.
+- The organisation's specific data retention policy referenced by AC-037 and NFR-004 is not defined anywhere in this input.
+- Which processing purposes require consent, and the exact consent-collection flow, is not specified beyond AC-040's general statement.
 
 ### Architecture
 
-- No requirements-phase input was supplied alongside this architecture, so explicit links from architecture decisions to US-001..US-017 cannot be confirmed -- only inferred from functional description.
-- No approver name or approval date given for the v1 architecture sign-off.
-- No explicit requirement id is attached to NFR-001 or this path in the provided input; likely maps to an auth/security-related user story but this cannot be confirmed without requirements-phase input.
-- GDPR: 'right to erasure' and 'right of access' controls -- the architecture documents export/erasure/audit-logging mechanisms, but retention-policy specifics (how long data is kept before/after erasure) are referenced only generically as 'per retention policy' with no concrete policy definition in this input.
+- Architecture does not specify the export delivery mechanism in detail (e.g., synchronous response vs. async download link) beyond 'worker processes ... GDPR export/erasure processing'.
 
 ### Development
 
-- No approver identity or approval date given.
-- No explicit per-item sprint assignment was provided in the input -- sprint item lists in this documentation are inferred from matching sprint goal text to story titles, not from a direct mapping field.
-- No status (not started/in progress/done) reported for any item in this sprint.
-- Item-to-sprint assignment is inferred, not stated explicitly in the input.
-- No status reported for any item in this sprint.
-- Inferred points (19) do not exactly match stated capacity (20) -- may indicate an unlisted or differently-scoped item.
-- Inferred points (19) do not exactly match stated capacity (20).
-- Inferred points (18) do not exactly match stated capacity (20).
-- No status reported for this sprint's item.
-- Inferred points (5) are well below stated capacity (20) -- either additional unlisted work is planned for this sprint or capacity is significantly underutilized; input does not clarify which.
-- No completion/test status reported for any item in this epic.
-- No completion/test status reported for this item.
-- No detail given on which events (feedback requests, goal updates) trigger notifications beyond the Sprint 5 goal text.
-- No explicit compliance framework or control checklist was supplied to confirm these stories fully satisfy GDPR obligations -- this needs human legal/compliance confirmation.
+- Backlog items carry no explicit sprint field in the input; this sprint's item list was inferred from matching each item's subject matter to the sprint goal text (cross-checked by points summing exactly to the 20-point capacity).
+- No implementation status (in-progress/done/blocked), commits, or PR references were provided for any item in this sprint.
+- Sprint-to-item mapping inferred from goal text, not an explicit input field.
+- No implementation status was reported for this sprint's items.
 
 ### Testing
 
-- Testing phase has not started -- none of the 40 acceptance criteria defined in requirements have recorded test coverage or results.
+- Testing phase has not started: no test plans, cases, or execution results are available to document.
 
 ### Deployment
 
-- No deployment recorded yet -- AWS environment, RDS PostgreSQL, S3 bucket, and Redis provisioning have not been documented.
+- Deployment phase has not started: no deployment records, environments, or release history were provided.
 
 ### Maintenance
 
-- No maintenance notes exist yet because the application has not been deployed.
+- Maintenance phase has not started: the system has not reached post-deployment, so there is nothing to report.
 <!-- sdlc:auto:end open-gaps -->

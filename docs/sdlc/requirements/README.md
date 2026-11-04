@@ -5,132 +5,104 @@
 <!-- sdlc:auto:start narrative -->
 ## Summary
 
-### REQ-EPIC-001 · approved · source: requirements:EPIC-001
+### REQ-SCOPE · approved · source: requirements:scope
 
-Users authenticate with email and password and are routed to a role-appropriate landing page; access across the system is governed by three roles: Employee, Manager, HR Admin. SSO was considered but is explicitly deferred.
+Lightweight MVP, requirements v1, with a product-owner-approved tech stack and runtime services; several previously discussed capabilities are explicitly deferred.
 
-US-001 (critical): Registered users log in with email/password and reach their role-appropriate landing page (AC-001). Incorrect credentials are denied with a single non-revealing error that does not disclose which field was wrong (AC-002, NFR-001). SSO (SAML/OAuth) was raised during requirements discussion and is explicitly deferred to a later version for this MVP (AC-003, assumption documented).
-US-002 (critical): Role-based access is enforced for all three roles. Employees are denied access to HR Admin functions such as the employee directory (AC-004). Managers can see their own data and their direct reports' data but not unrelated employees (AC-005). HR Admins can manage employee profiles and the reporting hierarchy (AC-006). The exact permission matrix per role is flagged as an open assumption to be refined.
+- Approved stack: Backend FastAPI 0.115, Cloud AWS, Database PostgreSQL 16, Frontend React 19 (each with documented rationale).
+- Approved runtime services: Amazon S3 (SaaS file storage) for CSV uploads and generated exports; Redis (container redis:7-alpine) used both as a background job queue and as a cache.
+- Required env vars/API keys: AWS_ACCESS_KEY_ID, AWS_REGION, AWS_SECRET_ACCESS_KEY, REDIS_URL, S3_BUCKET.
+- Explicitly out of scope: native mobile apps (iOS/Android); email delivery (SendGrid removed from stack); SSO (WorkOS removed); HRIS integration (BambooHR removed).
+- In-scope capabilities per product owner: OKR-style goal setting/tracking, personal dashboard, continuous feedback, employee profile records.
 
-**Related:** US-001, US-002, AC-001, AC-002, AC-003, AC-004, AC-005, AC-006, NFR-001, NFR-002
+**Related:** EPIC-001, EPIC-002, EPIC-003, EPIC-004, EPIC-005, EPIC-006, EPIC-007
 
-- ⚠ AC-006 explicitly flags the exact permission matrix per role as unrefined -- needs a definitive role/action matrix before design.
-- ⚠ SSO is deferred per AC-003; confirm this remains acceptable for go-live before architecture begins.
+### EPIC-001 · approved · source: requirements:EPIC-001
 
-### REQ-EPIC-002 · approved · source: requirements:EPIC-002
+Email/password sign-in and role-based access control across Employee, Manager and HR Admin roles; SSO explicitly deferred to a later version.
 
-HR Admins create and maintain employee profiles and the reporting hierarchy in-app and via CSV bulk import/update; employees can view their own profile. HRIS sync is explicitly out of scope for this MVP.
+- US-001 (critical): registered user signs in with email+password and lands on role-appropriate page (AC-001); incorrect credentials denied with a single non-revealing error (AC-002, NFR-001); only email/password auth delivered, SSO (SAML/OAuth) deferred (AC-003).
+- US-002 (critical): Employees denied HR Admin functions such as directory management (AC-004); Managers see their own data plus direct reports' only, not unrelated employees (AC-005); HR Admins manage employee profiles and reporting hierarchy (AC-006).
 
-US-003 (high): HR Admins create profiles with required fields (name, email, role) that appear in the directory (AC-007), and edits persist everywhere the profile is shown (AC-008). Only fields relevant to performance management are collected, per data minimisation (AC-009, NFR-003).
-US-004 (high): HR Admins assign/change an employee's manager; reassignment updates the direct-report lists of both the old and new manager (AC-010, AC-011).
-US-005 (medium): HR Admins bulk import/update employees and reporting relationships via CSV; a correctly formatted file creates/updates records and returns a processing summary (AC-012). Invalid/incomplete rows are rejected individually with reasons, without corrupting valid records (AC-013, NFR-009), and this runs as a background job (NFR-006). HRIS sync is explicitly out of scope; only CSV import and in-app management are delivered for this MVP (AC-014, assumption documented).
-US-006 (medium): Employees can view their own profile, including their assigned manager (AC-015).
+**Related:** US-001, US-002, NFR-001, NFR-002
 
-**Related:** US-003, US-004, US-005, US-006, AC-007, AC-008, AC-009, AC-010, AC-011, AC-012, AC-013, AC-014, AC-015, NFR-003, NFR-006, NFR-009
+- ⚠ AC-006 notes the exact permission matrix per role is still 'to be refined' — not finalized anywhere in this input.
 
-- ⚠ HRIS sync (originally BambooHR) is confirmed out of scope -- no gap, but noted here for traceability since it was an open assumption in US-005.
+### EPIC-002 · approved · source: requirements:EPIC-002
 
-### REQ-EPIC-003 · approved · source: requirements:EPIC-003
+HR Admins maintain employee profiles and reporting hierarchy in-app and via CSV bulk import; HRIS sync is explicitly deferred.
 
-Employees create OKR-style goals with measurable key results, track and update progress, and managers review and approve their direct reports' goals.
+- US-003 (high): HR Admin creates/edits profiles with required fields (name, email, role) (AC-007, AC-008); only performance-management-relevant fields collected per data minimisation (AC-009, NFR-003).
+- US-004 (high): HR Admin assigns/changes an employee's manager; hierarchy updates for both the previous and new manager (AC-010, AC-011).
+- US-005 (medium): HR Admin bulk CSV import creates/updates employees and hierarchy relationships with a processed-records summary (AC-012); invalid/missing-field rows are rejected with per-row reasons and valid rows are unaffected (AC-013, NFR-009); only CSV import plus in-app management delivered in this MVP, HRIS sync deferred (AC-014).
+- US-006 (medium): Employee views own profile including assigned manager (AC-015).
 
-US-007 (critical): Employees create objectives with a title, description and one or more key results; the goal is saved and listed (AC-016). Submitting without a title or any key result is blocked with field-level messaging (AC-017).
-US-008 (high): Updating a key result's progress or status recalculates and saves the goal's overall progress (AC-018); marking a goal complete/closed changes its status and reflects on the dashboard (AC-019).
-US-009 (high): Managers view their direct reports' objectives, key results and progress (AC-020), and can approve or request changes to goals submitted for approval, with the outcome visible to the employee (AC-021). Managers are denied access to goals of employees who are not their direct reports (AC-022, NFR-002).
+**Related:** US-003, US-004, US-005, US-006, NFR-003, NFR-006, NFR-009
 
-**Related:** US-007, US-008, US-009, AC-016, AC-017, AC-018, AC-019, AC-020, AC-021, AC-022, NFR-002
+### EPIC-003 · approved · source: requirements:EPIC-003
 
-- ⚠ The full set of goal/approval status values (e.g. draft, submitted, approved, changes-requested, complete, closed) is not enumerated -- needed before data modeling.
+Employees create and track OKR-style goals with key results; managers review and approve their direct reports' goals.
 
-### REQ-EPIC-004 · approved · source: requirements:EPIC-004
+- US-007 (critical): Employee creates an objective with title, description and one or more key results (AC-016); missing title or key result blocks save with a field-level message (AC-017).
+- US-008 (high): Employee updates a key result's progress value/status, goal overall progress recalculates and saves (AC-018); marking a goal complete/closed updates its status and reflects on the dashboard (AC-019).
+- US-009 (high): Manager views a direct report's objectives, key results and progress (AC-020); approves or requests changes on a submitted goal, with the outcome visible to the employee (AC-021); access denied when attempting to view a non-direct-report's goals (AC-022).
 
-Every user gets a personal dashboard summarising their own active goals and progress; org-wide/aggregate reporting is explicitly out of scope for this MVP.
+**Related:** US-007, US-008, US-009
 
-US-010 (high): Logged-in users with goals see active goals with progress/status on their dashboard (AC-023). Users with no goals see an empty state prompting goal creation (AC-024). The dashboard reflects progress updates when the user returns (AC-025). Dashboard responsiveness relies on caching rather than recompute-per-view (NFR-005).
+### EPIC-004 · approved · source: requirements:EPIC-004
 
-**Related:** US-010, AC-023, AC-024, AC-025, NFR-005
+Personal dashboard summarising each user's own goals and progress; org-wide/aggregate reporting is explicitly out of scope for this MVP.
 
-### REQ-EPIC-005 · approved · source: requirements:EPIC-005
+- US-010 (high): Dashboard shows active goals with progress/status (AC-023); empty state prompts goal creation when the user has none (AC-024); dashboard reflects a goal's updated progress on return (AC-025). Intended to be served from cache for responsiveness (NFR-005).
 
-Employees and managers can write continuous feedback for colleagues at any time, request feedback, and view feedback given and received, with visibility restricted to entitled parties.
+**Related:** US-010, NFR-005
 
-US-011 (high): Any logged-in user selects a colleague and submits feedback text, which is saved and associated with that colleague (AC-026); empty submissions are blocked (AC-027).
-US-012 (medium): A user requests feedback from a colleague; the colleague sees and can respond to the request (AC-028), and the requester can view the response once submitted (AC-029).
-US-013 (high): Employees can view feedback addressed to them (AC-030) and feedback they have given (AC-031). Attempts to view feedback addressed to another employee without entitlement are denied (AC-032, NFR-002).
+### EPIC-005 · approved · source: requirements:EPIC-005
 
-**Related:** US-011, US-012, US-013, AC-026, AC-027, AC-028, AC-029, AC-030, AC-031, AC-032, NFR-002
+Continuous feedback: any logged-in user can write feedback for a colleague, request feedback, and view feedback given and received.
 
-### REQ-EPIC-006 · approved · source: requirements:EPIC-006
+- US-011 (high): User selects a colleague and submits feedback text, saved and associated with that colleague (AC-026); empty content is blocked with a prompt (AC-027).
+- US-012 (medium): User requests feedback from a colleague; the request is recorded and visible/respondable by the colleague (AC-028); requester can view the submitted response (AC-029).
+- US-013 (high): Employee views feedback received (AC-030) and feedback they have given (AC-031); viewing feedback addressed to another employee without entitlement is denied (AC-032, NFR-002).
 
-The system surfaces in-app notifications for feedback requests and goal updates. Email delivery was part of the broader vision but is explicitly out of scope for this MVP.
+**Related:** US-011, US-012, US-013, NFR-002
 
-US-014 (medium): Logged-in users see an in-app notification when a colleague sends a feedback request (AC-033). Opening/viewing a notification marks it read (AC-034). Email notifications (originally via SendGrid) are explicitly deferred; only in-app notifications are delivered for this MVP (AC-035, assumption documented). Notification sending runs as background work (NFR-006).
+### EPIC-006 · approved · source: requirements:EPIC-006
 
-**Related:** US-014, AC-033, AC-034, AC-035, NFR-006
+In-app notifications for feedback requests and goal updates; email notification delivery is explicitly deferred.
 
-### REQ-EPIC-007 · approved · source: requirements:EPIC-007
+- US-014 (medium): Logged-in user sees an in-app notification when a colleague sends a feedback request (AC-033); opening/viewing a notification marks it read (AC-034); only in-app notifications are delivered in this MVP, email delivery deferred (AC-035). Notification fan-out intended to run as a background job (NFR-006).
 
-The system is designed to GDPR-level standards: employees can access/export their own data, HR Admins can action erasure requests, and data minimisation plus consent recording apply across record creation and import.
+**Related:** US-014, NFR-006
 
-US-015 (high): Employees can request and receive an exportable copy of their profile, goals and feedback data (AC-036).
-US-016 (high): HR Admins action approved erasure requests, removing or anonymising personal data per the organisation's retention policy (AC-037); after erasure, that employee's personal data is no longer accessible in the application (AC-038).
-US-017 (medium): Only fields necessary for performance management are stored on record creation or import, i.e. data minimisation (AC-039, NFR-003). Where consent is required for a processing purpose, consent status is recorded and retrievable (AC-040). Data residency in a chosen region (e.g. EU) and the overall GDPR-level posture is called out at NFR-004.
+### EPIC-007 · approved · source: requirements:EPIC-007
 
-**Related:** US-015, US-016, US-017, AC-036, AC-037, AC-038, AC-039, AC-040, NFR-003, NFR-004
+GDPR-level data protection: employees can access/export their own data, HR Admins action erasure requests, and data minimisation/consent are enforced.
 
-- ⚠ The organisation's specific data retention policy referenced in AC-037 is not itself defined in the inputs -- needed to implement erasure correctly.
-- ⚠ The mechanism and UI for recording/retrieving consent status (AC-040) is not detailed beyond 'recorded and retrievable'.
-- ⚠ GDPR-level requirements (US-015/016/017, NFR-004) have no architecture, implementation, or test coverage yet since those phases have not started -- compliance cannot be confirmed end-to-end until they do.
+- US-015 (high): Employee requests a copy of their personal data; system provides profile, goals and feedback data in an exportable format (AC-036).
+- US-016 (high): HR Admin actions an approved erasure request; personal data removed or anonymised per the organisation's retention policy (AC-037); after erasure the employee's personal data is no longer accessible in the application (AC-038).
+- US-017 (medium): Only fields necessary for performance management are stored on record creation or import (AC-039, NFR-003); consent status is recorded and retrievable where required for a given processing purpose (AC-040).
 
-### REQ-NFR-SET · approved · source: requirements:NFR-001..NFR-009
+**Related:** US-015, US-016, US-017, NFR-003, NFR-004
 
-Nine non-functional requirements span security, privacy, compliance, performance, scalability, compatibility and maintainability, each mapped to the user stories they constrain.
+- ⚠ The organisation's specific data retention policy referenced by AC-037 and NFR-004 is not defined anywhere in this input.
+- ⚠ Which processing purposes require consent, and the exact consent-collection flow, is not specified beyond AC-040's general statement.
 
-NFR-001 (security): non-revealing sign-in errors -- applies to US-001.
-NFR-002 (security): role-based access control across the tool (managers limited to own + direct reports' data, employees barred from HR Admin functions, feedback restricted to entitled viewers) -- applies to US-002, US-009, US-013.
-NFR-003 (privacy): data minimisation for employee records created or imported -- applies to US-003, US-017.
-NFR-004 (compliance): GDPR-level data protection and residency (region-pinned data, access/export/erasure/consent support, retention-aligned erasure) -- applies to US-015, US-016, US-017.
-NFR-005 (performance): dashboards/reports stay responsive for a few thousand employees via caching of expensive org-wide aggregates -- applies to US-010.
-NFR-006 (performance): CSV bulk import/update, scheduled reminders and bulk notification sending run as background jobs -- applies to US-005, US-014.
-NFR-007 (scalability): supports up to a few thousand employees in one organisation -- applies to the whole system.
-NFR-008 (compatibility): responsive web app for desktop and mobile browsers; no native mobile apps -- applies to the whole system.
-NFR-009 (maintainability): CSV import isolates and reports failing rows without corrupting valid ones -- applies to US-005.
+### REQ-NFR · approved · source: requirements:non-functional
+
+Nine non-functional requirements span security, privacy, compliance, performance, scalability, compatibility and maintainability.
+
+- NFR-001 [security] Non-revealing sign-in errors — applies to US-001.
+- NFR-002 [security] Role-based access control across the tool — applies to US-002, US-009, US-013.
+- NFR-003 [privacy] Data minimisation for employee records — applies to US-003, US-017.
+- NFR-004 [compliance] GDPR-level data protection and EU residency, incl. access/export/erasure/consent — applies to US-015, US-016, US-017.
+- NFR-005 [performance] Responsive dashboards/reports with caching of expensive aggregates — applies to US-010.
+- NFR-006 [performance] Background processing for batch work (CSV import, reminders, notifications) — applies to US-005, US-014.
+- NFR-007 [scalability] Supports up to a few thousand employees in one organisation — applies to whole system.
+- NFR-008 [compatibility] Responsive web app on desktop and mobile browsers, no native apps — applies to whole system.
+- NFR-009 [maintainability] CSV import protects valid records on partial failure — applies to US-005.
 
 **Related:** US-001, US-002, US-003, US-005, US-009, US-010, US-013, US-014, US-015, US-016, US-017
-
-- ⚠ None of the NFRs have yet been verified against an architecture or test plan since those phases have not started.
-
-### REQ-TECHSTACK · approved · source: requirements:technology-stack
-
-Product owner approved a fixed technology stack to be designed against exactly as specified, with no substitutions: FastAPI backend, AWS cloud, PostgreSQL 16 database, React 19 frontend.
-
-Backend: FastAPI 0.115 -- chosen for business logic over structured data (cycle phases, approval flows, RBAC, HRIS sync placeholder, CSV import, scheduled notifications), clean API fit, and request validation supporting GDPR-level data minimisation and strict input handling.
-Cloud: AWS -- chosen for region-pinned data residency/deletion control under GDPR (e.g. EU region), managed PostgreSQL (RDS), file storage (S3), networking to lock down an internal tool, and broad support for easy hosting/hand-over.
-Database: PostgreSQL 16 -- chosen for strong relational integrity across employees/hierarchy/goals/review cycles/assessments/feedback/ratings, reliable transactions, hierarchy and rating-distribution queries, row-level controls/auditability for GDPR access/erasure, and comfortable performance at a few thousand employees without tuning.
-Frontend: React 19 -- chosen for form-heavy, interactive, role-aware UI (goal trees, configurable review forms/rating scales, 360 rater selection placeholder, role-specific dashboards with charts/exports), dynamic rendering of admin-configurable directory/cycles/templates, and wide staffing availability.
-
-**Related:** REQ-NFR-SET
-
-- ⚠ No architecture documentation exists yet to show how these approved technologies are actually composed into services/components.
-
-### REQ-SERVICES · approved · source: requirements:runtime-services
-
-Three approved runtime services support file storage, background job processing, and caching, with a defined set of required API keys/environment variables.
-
-File storage: Amazon S3 (SaaS; env AWS_ACCESS_KEY_ID, AWS_SECRET_ACCESS_KEY, AWS_REGION, S3_BUCKET) -- holds uploaded CSV imports and generated CSV/PDF report and review exports durably, in the chosen GDPR region, separate from the database.
-Queue: Redis as a job queue (container redis:7-alpine) -- runs bulk CSV import/update, HRIS sync placeholder, scheduled deadline reminders, and bulk notification sending in the background rather than blocking requests.
-Cache: Redis (container redis:7-alpine) -- caches expensive org-wide completion/rating-distribution dashboard results and user sessions to keep HR reporting responsive for a few thousand employees.
-Required API keys/env vars: AWS_ACCESS_KEY_ID, AWS_REGION, AWS_SECRET_ACCESS_KEY, REDIS_URL, S3_BUCKET.
-
-**Related:** NFR-005, NFR-006, US-005, US-010, US-014, US-015
-
-### REQ-SCOPE · approved · source: requirements:scope-and-version
-
-This is a lightweight MVP, requirements version 1, covering goal/OKR tracking, a personal dashboard, continuous feedback, and employee profile records -- explicitly excluding native mobile apps, email delivery, SSO, and HRIS integration.
-
-Delivery scope: lightweight. Requirements version: 1. In-scope capabilities: goal and objective setting/tracking (OKR-style), personal dashboard of own goals/progress, writing/viewing continuous feedback, employee profile records. Out of scope for this version: native mobile apps (iOS/Android); email (SendGrid was removed from the stack); SSO (WorkOS was removed from the stack); HRIS (BambooHR was removed from the stack). These exclusions are reflected as deferred assumptions in EPIC-001 (SSO), EPIC-002 (HRIS), and EPIC-006 (email).
-
-**Related:** REQ-EPIC-001, REQ-EPIC-002, REQ-EPIC-006
 <!-- sdlc:auto:end narrative -->
 
 <!-- sdlc:auto:start summary -->
