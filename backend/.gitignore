@@ -6,3 +6,8 @@ venv/
 .mypy_cache/
 *.db
 .env
+
+# MEDIA_ROOT's local default (app/storage.py): the filesystem fallback for
+# uploads and generated exports when S3_BUCKET is not set.
+/media/
+
