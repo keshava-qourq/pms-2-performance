@@ -19,48 +19,32 @@ SEED_EMPLOYEES = [
 
 
 def seed_demo_employees(db: Session) -> list[Employee]:
-    """Create the demo accounts if they do not already exist, and return them."""
+    """Create the demo accounts if they do not already exist, and return them.
+
+    Driven by SEED_EMPLOYEES itself, rather than one hand-written block per
+    account, so the fixture data and the creation logic cannot drift apart.
+    The employee entry's manager_id is resolved by email against whatever
+    was already created in this same pass -- SEED_EMPLOYEES lists the
+    manager before the employee that reports to it.
+    """
+    by_email: dict[str, Employee] = {e.email: e for e in db.query(Employee).all()}
     created: list[Employee] = []
-    by_email = {e.email: e for e in db.query(Employee).all()}
 
-    manager = by_email.get("manager@example.com")
-    if manager is None:
-        manager = Employee(
-            name="Morgan Manager",
-            email="manager@example.com",
-            role="manager",
-            status="active",
-            password_hash=hash_password(SEED_PASSWORD),
-        )
-        db.add(manager)
-        db.flush()
-        created.append(manager)
-
-    hr_admin = by_email.get("hr.admin@example.com")
-    if hr_admin is None:
-        hr_admin = Employee(
-            name="Harper Admin",
-            email="hr.admin@example.com",
-            role="hr_admin",
-            status="active",
-            password_hash=hash_password(SEED_PASSWORD),
-        )
-        db.add(hr_admin)
-        db.flush()
-        created.append(hr_admin)
-
-    employee = by_email.get("employee@example.com")
-    if employee is None:
+    for spec in SEED_EMPLOYEES:
+        if spec["email"] in by_email:
+            continue
+        manager = by_email.get("manager@example.com") if spec["role"] == "employee" else None
         employee = Employee(
-            name="Emery Employee",
-            email="employee@example.com",
-            role="employee",
+            name=spec["name"],
+            email=spec["email"],
+            role=spec["role"],
             status="active",
-            manager_id=manager.id,
+            manager_id=manager.id if manager else None,
             password_hash=hash_password(SEED_PASSWORD),
         )
         db.add(employee)
         db.flush()
+        by_email[spec["email"]] = employee
         created.append(employee)
 
     db.commit()

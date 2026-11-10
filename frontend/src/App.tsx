@@ -44,20 +44,22 @@ const navLinkClass = ({ isActive }: { isActive: boolean }) =>
 
 // The screens behind sign-in render inside the side menu. Login and the other
 // screens shown before sign-in render on their own, with no menu around them.
+function deniedMessageFromState(state: unknown): string | null {
+  return (state as { accessDeniedMessage?: string } | null)?.accessDeniedMessage ?? null;
+}
+
 function Shell() {
   const { user, forbidden, clearForbidden } = useAuth();
   const location = useLocation();
   const [routeDeniedMessage, setRouteDeniedMessage] = React.useState<string | null>(
-    (location.state as { accessDeniedMessage?: string } | null)?.accessDeniedMessage ?? null,
+    deniedMessageFromState(location.state),
   );
 
   // A denial (route-guard or API 403) belongs to the page that triggered it; moving on to
   // another page clears it rather than following the user around.
   React.useEffect(() => {
     clearForbidden();
-    setRouteDeniedMessage(
-      (location.state as { accessDeniedMessage?: string } | null)?.accessDeniedMessage ?? null,
-    );
+    setRouteDeniedMessage(deniedMessageFromState(location.state));
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [location.pathname]);
 
