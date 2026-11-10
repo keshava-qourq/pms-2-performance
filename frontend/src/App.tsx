@@ -6,6 +6,15 @@ import Goals from "@/screens/Goals";
 import Feedback from "@/screens/Feedback";
 import MyProfile from "@/screens/MyProfile";
 import Employees from "@/screens/Employees";
+import { AuthProvider, useAuth } from "@/lib/auth";
+
+// Guards every route below it: an unauthenticated visit to anything other than
+// /login bounces back there.
+function RequireAuth() {
+  const { isAuthenticated } = useAuth();
+  if (!isAuthenticated) return <Navigate to="/login" replace />;
+  return <Outlet />;
+}
 
 const navLinkClass = ({ isActive }: { isActive: boolean }) =>
   [
@@ -58,16 +67,21 @@ function Shell() {
 
 export default function App() {
   return (
-    <Routes>
-      <Route path="/login" element={<Login />} />
-      <Route element={<Shell />}>
-        <Route path="/dashboard" element={<Dashboard />} />
-        <Route path="/goals" element={<Goals />} />
-        <Route path="/feedback" element={<Feedback />} />
-        <Route path="/my-profile" element={<MyProfile />} />
-        <Route path="/employees" element={<Employees />} />
-      </Route>
-      <Route path="*" element={<Navigate to="/login" replace />} />
-    </Routes>
+    <AuthProvider>
+      <Routes>
+        <Route path="/login" element={<Login />} />
+        <Route element={<RequireAuth />}>
+          <Route element={<Shell />}>
+            <Route path="/dashboard" element={<Dashboard />} />
+            <Route path="/goals" element={<Goals />} />
+            <Route path="/feedback" element={<Feedback />} />
+            <Route path="/my-profile" element={<MyProfile />} />
+            <Route path="/me" element={<MyProfile />} />
+            <Route path="/employees" element={<Employees />} />
+          </Route>
+        </Route>
+        <Route path="*" element={<Navigate to="/login" replace />} />
+      </Routes>
+    </AuthProvider>
   );
 }

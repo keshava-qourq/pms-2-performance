@@ -1,47 +1,80 @@
-"""Password hashing and JWT helpers shared by every endpoint that needs auth.
+"""Password hashing and JWT access tokens.
 
-Scaffolding only: nothing here is wired into a route yet. Implementing
-POST /auth/login (and the `get_current_user` dependency in app/deps.py that the
-other endpoints will depend on) is the development sprint's work.
-
-pbkdf2_sha256 rather than bcrypt: it is pure-Python (via hashlib), so it needs
-no extra pinned dependency beyond passlib itself.
+Email/password only -- no SAML/OAuth here or anywhere else in the app (AC-003).
 """
 
+import os
 from datetime import UTC, datetime, timedelta
 from typing import Any
 
 import jwt
+from fastapi import Depends, HTTPException, status
+from fastapi.security import HTTPAuthorizationCredentials, HTTPBearer
 from passlib.context import CryptContext
+from sqlalchemy.orm import Session
 
-from app.config import JWT_ALGORITHM, JWT_EXPIRE_MINUTES, JWT_SECRET_KEY
+from app.database import get_db
+from app.models import Employee
 
-pwd_context = CryptContext(schemes=["pbkdf2_sha256"], deprecated="auto")
+JWT_SECRET_KEY = os.getenv("JWT_SECRET_KEY", "dev-secret-change-me")
+JWT_ALGORITHM = "HS256"
+ACCESS_TOKEN_EXPIRE_MINUTES = 60 * 24
+
+_pwd_context = CryptContext(schemes=["bcrypt"], deprecated="auto")
+
+_bearer_scheme = HTTPBearer(auto_error=False)
 
 
 def hash_password(password: str) -> str:
-    """A salted hash of ``password``, safe to store in employees.password_hash."""
-    return pwd_context.hash(password)
+    """Hash a plaintext password. The plaintext itself is never persisted or logged."""
+    return _pwd_context.hash(password)
 
 
 def verify_password(password: str, password_hash: str) -> bool:
-    """Whether ``password`` matches a hash `hash_password` produced."""
-    return pwd_context.verify(password, password_hash)
+    return _pwd_context.verify(password, password_hash)
 
 
-def create_access_token(subject: str, extra_claims: dict[str, Any] | None = None) -> str:
-    """A signed JWT naming ``subject`` (the employee id) as `sub`."""
+def create_access_token(employee: Employee) -> str:
     now = datetime.now(UTC)
     payload: dict[str, Any] = {
-        "sub": subject,
+        "sub": employee.id,
+        "role": employee.role,
         "iat": now,
-        "exp": now + timedelta(minutes=JWT_EXPIRE_MINUTES),
+        "exp": now + timedelta(minutes=ACCESS_TOKEN_EXPIRE_MINUTES),
     }
-    if extra_claims:
-        payload.update(extra_claims)
     return jwt.encode(payload, JWT_SECRET_KEY, algorithm=JWT_ALGORITHM)
 
 
 def decode_access_token(token: str) -> dict[str, Any]:
-    """The claims a valid token carries; raises jwt.PyJWTError when it is not."""
+    """Raises jwt.PyJWTError on any invalid, malformed or expired token."""
     return jwt.decode(token, JWT_SECRET_KEY, algorithms=[JWT_ALGORITHM])
+
+
+_NOT_AUTHENTICATED = HTTPException(
+    status_code=status.HTTP_401_UNAUTHORIZED,
+    detail="Not authenticated",
+    headers={"WWW-Authenticate": "Bearer"},
+)
+
+
+def get_current_employee(
+    credentials: HTTPAuthorizationCredentials | None = Depends(_bearer_scheme),  # noqa: B008
+    db: Session = Depends(get_db),  # noqa: B008
+) -> Employee:
+    """Verify the bearer JWT fully (signature, algorithm, expiry) and load its
+    subject. Fails closed: any missing or invalid token is a 401, never a guess."""
+    if credentials is None or not credentials.credentials:
+        raise _NOT_AUTHENTICATED
+    try:
+        payload = decode_access_token(credentials.credentials)
+    except jwt.PyJWTError as exc:
+        raise _NOT_AUTHENTICATED from exc
+
+    employee_id = payload.get("sub")
+    if not employee_id:
+        raise _NOT_AUTHENTICATED
+
+    employee = db.get(Employee, employee_id)
+    if employee is None:
+        raise _NOT_AUTHENTICATED
+    return employee

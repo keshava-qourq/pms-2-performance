@@ -1,12 +1,19 @@
-"""The password-hashing and JWT helpers every auth ticket will build on."""
+"""Unit tests for password hashing and JWT helpers."""
 
 import jwt
 import pytest
 
-from app.security import create_access_token, decode_access_token, hash_password, verify_password
+from app.models import Employee
+from app.security import (
+    JWT_SECRET_KEY,
+    create_access_token,
+    decode_access_token,
+    hash_password,
+    verify_password,
+)
 
 
-def test_password_hash_round_trips() -> None:
+def test_ac001_password_is_hashed_not_plaintext() -> None:
     hashed = hash_password("correct horse battery staple")
 
     assert hashed != "correct horse battery staple"
@@ -14,16 +21,23 @@ def test_password_hash_round_trips() -> None:
     assert not verify_password("wrong password", hashed)
 
 
-def test_access_token_round_trips_the_subject() -> None:
-    token = create_access_token("employee-id-123")
+def test_ac001_access_token_carries_sub_role_and_expiry() -> None:
+    employee = Employee(
+        id="emp-1", name="A", email="a@example.com", role="manager", password_hash="x"
+    )
 
-    claims = decode_access_token(token)
+    token = create_access_token(employee)
+    payload = decode_access_token(token)
 
-    assert claims["sub"] == "employee-id-123"
+    assert payload["sub"] == "emp-1"
+    assert payload["role"] == "manager"
+    assert "exp" in payload
 
 
-def test_tampered_token_is_rejected() -> None:
-    token = create_access_token("employee-id-123")
+def test_me_rejects_token_signed_with_wrong_secret() -> None:
+    bogus = jwt.encode({"sub": "emp-1", "role": "employee"}, "not-the-secret", algorithm="HS256")
 
     with pytest.raises(jwt.PyJWTError):
-        decode_access_token(token + "tampered")
+        decode_access_token(bogus)
+
+    assert JWT_SECRET_KEY != "not-the-secret"
