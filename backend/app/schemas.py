@@ -5,8 +5,9 @@ generated route returns until it has been implemented.
 """
 
 from datetime import datetime
+from typing import Literal
 
-from pydantic import BaseModel, EmailStr
+from pydantic import BaseModel, ConfigDict, EmailStr
 
 
 class LoginRequest(BaseModel):
@@ -43,6 +44,54 @@ class MeResponse(BaseModel):
     created_at: datetime
     updated_at: datetime
     manager: ManagerSummary | None = None
+
+
+EmployeeRole = Literal["employee", "manager", "hr_admin"]
+EmployeeStatus = Literal["active", "inactive"]
+
+
+class EmployeeCreate(BaseModel):
+    """Only the fields performance management needs (NFR-003): no address,
+    DOB, salary or demographic data, and no other field is accepted."""
+
+    model_config = ConfigDict(extra="forbid")
+
+    name: str
+    email: EmailStr
+    role: EmployeeRole
+    manager_id: str | None = None
+
+
+class EmployeeUpdate(BaseModel):
+    """Any subset of the minimised fields; anything else is rejected."""
+
+    model_config = ConfigDict(extra="forbid")
+
+    name: str | None = None
+    email: EmailStr | None = None
+    role: EmployeeRole | None = None
+    manager_id: str | None = None
+    status: EmployeeStatus | None = None
+
+
+class EmployeeOut(BaseModel):
+    model_config = ConfigDict(from_attributes=True)
+
+    id: str
+    name: str
+    email: str
+    role: str
+    manager_id: str | None
+    status: str
+    created_at: datetime
+    updated_at: datetime
+
+
+class EmployeeListResponse(BaseModel):
+    items: list[EmployeeOut]
+    total: int
+    page: int
+    page_size: int
 
 
 class StubResponse(BaseModel):
