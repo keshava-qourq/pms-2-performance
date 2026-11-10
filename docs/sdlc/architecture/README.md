@@ -48,8 +48,6 @@ POST /me/data-export lets an employee request an export of their profile, goals 
 
 **Related:** EPIC-007, US-015, US-016, US-017, NFR-003, NFR-004
 
-- ⚠ Architecture does not specify the export delivery mechanism in detail (e.g., synchronous response vs. async download link) beyond 'worker processes ... GDPR export/erasure processing'.
-
 ### ARCH-006 · approved · source: architecture:technology_decisions
 
 Architecture's chosen stack matches the product-owner-approved stack from requirements exactly, with documented rejected alternatives.

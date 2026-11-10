@@ -9,12 +9,12 @@ Built from recorded links, not written by a model: requirement key → plan item
 <!-- sdlc:auto:start matrix -->
 | Requirement | Epic | Title | Plan items | Sprint | Design | Code | Commits | Ticket | Tests | AC tests | Deployed |
 |---|---|---|---|---|---|---|---|---|---|---|---|
-| US-001 | EPIC-001 | Sign in with email and password | US-001 | 1 | POST /auth/login, api, db, employees, web | — | — | not started | not run | 0/3 tested · 0/3 passing | — |
-| US-002 | EPIC-001 | Role-based access enforcement | US-002, US-002-T1, US-002-T2, US-002-T3, US-002-T4 | 1 | api, db, employees | — | — | not started | not run | 0/3 tested · 0/3 passing | — |
-| US-003 | EPIC-002 | Create and edit employee profiles | US-003 | 1 | PATCH /admin/employees/{id}, POST /admin/employees, api, db, employees, web | — | — | not started | not run | 0/3 tested · 0/3 passing | — |
+| US-001 | EPIC-001 | Sign in with email and password | US-001 | 1 | POST /auth/login, api, db, employees, web | backend/alembic.ini, backend/alembic/env.py, backend/alembic/script.py.mako, backend/alembic/versions/0001_initial.py, backend/app/main.py +20 more | — | failed | succeeded | 3/3 tested · 1/3 passing | — |
+| US-002 | EPIC-001 | Role-based access enforcement | US-002, US-002-T1, US-002-T2, US-002-T3, US-002-T4 | 1 | api, db, employees | backend/app/deps.py, backend/app/main.py, backend/app/routers/admin.py, backend/app/routers/employees.py, backend/tests/test_rbac.py +6 more | — | failed | succeeded | 3/3 tested · 2/3 passing | — |
+| US-003 | EPIC-002 | Create and edit employee profiles | US-003 | 1 | PATCH /admin/employees/{id}, POST /admin/employees, api, db, employees, web | backend/alembic/versions/0002_employees_name_index.py, backend/app/models.py, backend/app/routers/admin.py, backend/app/routers/employees.py, backend/app/schemas.py +5 more | e8b243f | delivered | succeeded | 3/3 tested · 0/3 passing | — |
 | US-004 | EPIC-002 | Maintain reporting hierarchy | US-004 | 2 | PATCH /admin/employees/{id}, api, db, employees, web | — | — | not started | not run | 0/2 tested · 0/2 passing | — |
 | US-005 | EPIC-002 | Bulk import and update employees via CSV | US-005, US-005-T1, US-005-T2, US-005-T3, US-005-T4 | 3 | GET /admin/imports/{job_id}, POST /admin/imports, api, csv_import_jobs, db, employees, redis, s3, web, worker | — | — | not started | not run | 0/3 tested · 0/3 passing | — |
-| US-006 | EPIC-002 | View own employee profile | US-006 | 1 | GET /me, api, db, employees, web | — | — | not started | not run | 0/1 tested · 0/1 passing | — |
+| US-006 | EPIC-002 | View own employee profile | US-006 | 1 | GET /me, api, db, employees, web | — | — | skipped | not run | 1/1 tested · 0/1 passing | — |
 | US-007 | EPIC-003 | Create goals and objectives | US-007 | 2 | POST /goals, api, db, goals, key_results, web | — | — | not started | not run | 0/2 tested · 0/2 passing | — |
 | US-008 | EPIC-003 | Track and update goal progress | US-008 | 3 | PATCH /goals/{id}/key-results/{kr_id}, POST /goals/{id}/submit, api, db, goals, key_results, web | — | — | not started | not run | 0/2 tested · 0/2 passing | — |
 | US-009 | EPIC-003 | Manager review of direct reports' goals | US-009 | 4 | GET /employees/{id}/goals, POST /goals/{id}/review, api, db, employees, goals, key_results, web | — | — | not started | not run | 0/3 tested · 0/3 passing | — |

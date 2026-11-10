@@ -8,6 +8,4 @@
 No deployment has been recorded for this project yet.
 
 No deployment attempts, environments, release versions, or rollout outcomes were provided in the input, despite deployment nodes being specified in the architecture.
-
-- ⚠ Deployment phase has not started: no deployment records, environments, or release history were provided.
 <!-- sdlc:auto:end narrative -->

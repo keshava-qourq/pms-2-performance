@@ -26,8 +26,6 @@ Email/password sign-in and role-based access control across Employee, Manager an
 
 **Related:** US-001, US-002, NFR-001, NFR-002
 
-- ⚠ AC-006 notes the exact permission matrix per role is still 'to be refined' — not finalized anywhere in this input.
-
 ### EPIC-002 · approved · source: requirements:EPIC-002
 
 HR Admins maintain employee profiles and reporting hierarchy in-app and via CSV bulk import; HRIS sync is explicitly deferred.
@@ -84,9 +82,6 @@ GDPR-level data protection: employees can access/export their own data, HR Admin
 - US-017 (medium): Only fields necessary for performance management are stored on record creation or import (AC-039, NFR-003); consent status is recorded and retrievable where required for a given processing purpose (AC-040).
 
 **Related:** US-015, US-016, US-017, NFR-003, NFR-004
-
-- ⚠ The organisation's specific data retention policy referenced by AC-037 and NFR-004 is not defined anywhere in this input.
-- ⚠ Which processing purposes require consent, and the exact consent-collection flow, is not specified beyond AC-040's general statement.
 
 ### REQ-NFR · approved · source: requirements:non-functional
 
