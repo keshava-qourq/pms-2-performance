@@ -260,9 +260,10 @@ export default function Screen() {
   const [loading, setLoading] = React.useState(true);
   const [loadError, setLoadError] = React.useState<string | null>(null);
   const [refreshKey, setRefreshKey] = React.useState(0);
-  const [panel, setPanel] = React.useState<{ mode: "closed" | "create" | "edit"; id: string | null }>(
-    { mode: "closed", id: null },
-  );
+  const [panel, setPanel] = React.useState<{
+    mode: "closed" | "create" | "edit";
+    id: string | null;
+  }>({ mode: "closed", id: null });
 
   React.useEffect(() => {
     const t = setTimeout(() => {
@@ -322,7 +323,11 @@ export default function Screen() {
 
   return (
     <div
-      style={{ color: brand.primaryColor, fontFamily: brand.fontBody, backgroundColor: brand.backgroundColor }}
+      style={{
+        color: brand.primaryColor,
+        fontFamily: brand.fontBody,
+        backgroundColor: brand.backgroundColor,
+      }}
       className="min-h-full px-6 py-10 sm:px-10"
     >
       <div className="mx-auto max-w-6xl">
@@ -360,7 +365,10 @@ export default function Screen() {
         {panel.mode !== "closed" ? (
           <div
             className="mt-6 max-w-lg rounded-[var(--brand-radius)] border p-5"
-            style={{ borderColor: "rgba(233,237,233,0.12)", backgroundColor: "rgba(233,237,233,0.04)" }}
+            style={{
+              borderColor: "rgba(233,237,233,0.12)",
+              backgroundColor: "rgba(233,237,233,0.04)",
+            }}
           >
             <h2 className="text-lg" style={{ fontFamily: brand.fontHeading }}>
               {panel.mode === "create" ? "Add employee" : `Edit ${editing?.name ?? ""}`}
@@ -379,7 +387,12 @@ export default function Screen() {
 
         <div className="mt-8">
           {loading ? (
-            <p role="status" aria-live="polite" className="text-sm" style={{ color: brand.neutralColor }}>
+            <p
+              role="status"
+              aria-live="polite"
+              className="text-sm"
+              style={{ color: brand.neutralColor }}
+            >
               Loading employees…
             </p>
           ) : loadError ? (

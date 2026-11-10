@@ -89,9 +89,7 @@ describe("Employees screen", () => {
     fireEvent.change(screen.getByLabelText(/search/i), { target: { value: "bob" } });
 
     await waitFor(() =>
-      expect(apiFetch).toHaveBeenLastCalledWith(
-        expect.stringMatching(/search=bob.*page=1/),
-      ),
+      expect(apiFetch).toHaveBeenLastCalledWith(expect.stringMatching(/search=bob.*page=1/)),
     );
   });
 
@@ -103,9 +101,7 @@ describe("Employees screen", () => {
     vi.mocked(apiFetch).mockResolvedValueOnce(page([BOB], 60, 2));
     fireEvent.click(screen.getByRole("button", { name: /next/i }));
 
-    await waitFor(() =>
-      expect(apiFetch).toHaveBeenLastCalledWith(expect.stringMatching(/page=2/)),
-    );
+    await waitFor(() => expect(apiFetch).toHaveBeenLastCalledWith(expect.stringMatching(/page=2/)));
     expect(await screen.findByText("Bob Employee")).toBeInTheDocument();
   });
 
@@ -146,7 +142,9 @@ describe("Employees screen", () => {
     fireEvent.click(screen.getByRole("button", { name: /new employee/i }));
 
     fireEvent.change(screen.getByLabelText(/full name/i), { target: { value: "Carol New" } });
-    fireEvent.change(screen.getByLabelText(/work email/i), { target: { value: "carol@example.com" } });
+    fireEvent.change(screen.getByLabelText(/work email/i), {
+      target: { value: "carol@example.com" },
+    });
     fireEvent.change(screen.getByLabelText(/^manager$/i), { target: { value: "e-1" } });
 
     vi.mocked(apiFetch).mockResolvedValueOnce({
@@ -186,7 +184,9 @@ describe("Employees screen", () => {
     fireEvent.click(screen.getByRole("button", { name: /new employee/i }));
 
     fireEvent.change(screen.getByLabelText(/full name/i), { target: { value: "Dupe" } });
-    fireEvent.change(screen.getByLabelText(/work email/i), { target: { value: "alice@example.com" } });
+    fireEvent.change(screen.getByLabelText(/work email/i), {
+      target: { value: "alice@example.com" },
+    });
 
     vi.mocked(apiFetch).mockRejectedValueOnce(
       new ApiError("Email already in use", 409, "Email already in use"),
@@ -223,7 +223,9 @@ describe("Employees screen", () => {
     fireEvent.click(screen.getByRole("button", { name: /new employee/i }));
 
     fireEvent.change(screen.getByLabelText(/full name/i), { target: { value: "Someone" } });
-    fireEvent.change(screen.getByLabelText(/work email/i), { target: { value: "someone@example.com" } });
+    fireEvent.change(screen.getByLabelText(/work email/i), {
+      target: { value: "someone@example.com" },
+    });
 
     const error = new ApiError("Validation failed", 422, undefined as unknown as string);
     (error as unknown as { detail: unknown }).detail = [

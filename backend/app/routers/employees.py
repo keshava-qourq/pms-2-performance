@@ -51,12 +51,7 @@ def list_employees(
         query = query.filter(or_(Employee.name.ilike(like), Employee.email.ilike(like)))
 
     total = query.count()
-    rows = (
-        query.order_by(Employee.name)
-        .offset((page - 1) * page_size)
-        .limit(page_size)
-        .all()
-    )
+    rows = query.order_by(Employee.name).offset((page - 1) * page_size).limit(page_size).all()
     items = [EmployeeOut.model_validate(row) for row in rows]
     return EmployeeListResponse(items=items, total=total, page=page, page_size=page_size)
 

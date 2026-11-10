@@ -236,7 +236,11 @@ def test_nfr007_list_honours_search(client: TestClient, seeded: dict) -> None:
     client.post(
         "/admin/employees",
         headers=_auth(token),
-        json={"name": "Zelda Searchable", "email": "zelda.searchable@example.com", "role": "employee"},
+        json={
+            "name": "Zelda Searchable",
+            "email": "zelda.searchable@example.com",
+            "role": "employee",
+        },
     )
     response = client.get("/admin/employees?search=Zelda", headers=_auth(token))
     assert response.status_code == 200
