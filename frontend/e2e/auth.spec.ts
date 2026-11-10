@@ -1,8 +1,10 @@
 import path from "node:path";
+import { fileURLToPath } from "node:url";
 import { execFileSync } from "node:child_process";
 
 import { expect, test } from "@playwright/test";
 
+const __dirname = path.dirname(fileURLToPath(import.meta.url));
 const BACKEND_DIR = path.resolve(__dirname, "../../backend");
 const PASSWORD = "Password123!";
 const EMPLOYEE_EMAIL = "employee@example.com";
@@ -20,7 +22,7 @@ function seedDemoEmployees(): void {
       "from app.database import SessionLocal; from app.seed import seed_demo_employees; " +
         "db = SessionLocal(); seed_demo_employees(db); db.close()",
     ],
-    { cwd: BACKEND_DIR, stdio: "inherit" }
+    { cwd: BACKEND_DIR, stdio: "inherit" },
   );
 }
 
@@ -69,7 +71,9 @@ test("[AC-015] an authenticated employee sees their own profile and manager", as
   await expect(page.getByText(MANAGER_EMAIL)).toBeVisible();
 });
 
-test("[AC-guard] visiting a protected route while signed out redirects to /login", async ({ page }) => {
+test("[AC-guard] visiting a protected route while signed out redirects to /login", async ({
+  page,
+}) => {
   await page.context().clearCookies();
   await page.addInitScript(() => window.localStorage.clear());
   await page.goto("/dashboard");
