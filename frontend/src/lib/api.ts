@@ -7,8 +7,7 @@
 //
 // Set at build time: the platform bakes the deployed API URL into the frontend build. The
 // fallback is the local backend so a bare `npm run dev` still points somewhere real.
-export const API_BASE_URL: string =
-  import.meta.env.VITE_API_BASE_URL ?? "http://localhost:8000";
+export const API_BASE_URL: string = import.meta.env.VITE_API_BASE_URL ?? "http://localhost:8000";
 
 // The shared bearer the deployed API expects (its SECRET_KEY), used only while no signed-in
 // user token exists yet (e.g. the login call itself).
@@ -23,6 +22,7 @@ function readStoredToken(): string | null {
 
 let authToken: string | null = readStoredToken();
 let unauthorizedHandler: (() => void) | null = null;
+let forbiddenHandler: (() => void) | null = null;
 
 /** Sets (or clears) the bearer token apiFetch attaches to every later call, and persists it. */
 export function setAuthToken(token: string | null): void {
@@ -39,6 +39,11 @@ export function getAuthToken(): string | null {
 /** Registered by the auth store so a 401 anywhere can clear the session. */
 export function onUnauthorized(handler: (() => void) | null): void {
   unauthorizedHandler = handler;
+}
+
+/** Registered by the auth store so a 403 anywhere can render the shared "Access denied" state. */
+export function onForbidden(handler: (() => void) | null): void {
+  forbiddenHandler = handler;
 }
 
 export class ApiError extends Error {
@@ -68,6 +73,10 @@ export async function apiFetch<T>(path: string, init?: RequestInit): Promise<T> 
     unauthorizedHandler?.();
   }
 
+  if (response.status === 403) {
+    forbiddenHandler?.();
+  }
+
   if (!response.ok) {
     let detail: string | undefined;
     try {
@@ -79,7 +88,7 @@ export async function apiFetch<T>(path: string, init?: RequestInit): Promise<T> 
     throw new ApiError(
       detail ?? `${init?.method ?? "GET"} ${path} failed: ${response.status}`,
       response.status,
-      detail
+      detail,
     );
   }
   return response.status === 204 ? (undefined as T) : ((await response.json()) as T);

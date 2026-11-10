@@ -1,6 +1,6 @@
 import * as React from "react";
 
-import { apiFetch, getAuthToken, onUnauthorized, setAuthToken } from "@/lib/api";
+import { apiFetch, getAuthToken, onForbidden, onUnauthorized, setAuthToken } from "@/lib/api";
 
 export type Role = "employee" | "manager" | "hr_admin";
 
@@ -24,6 +24,10 @@ interface AuthContextValue {
   isAuthenticated: boolean;
   login: (email: string, password: string) => Promise<SessionUser>;
   logout: () => void;
+  /** Set when any API call most recently returned 403, so the shell can render the shared
+   * "Access denied" state instead of an empty screen or a raw error. */
+  forbidden: boolean;
+  clearForbidden: () => void;
 }
 
 const AuthContext = React.createContext<AuthContextValue | null>(null);
@@ -52,15 +56,21 @@ export function landingPathForRole(role: Role): string {
 
 export function AuthProvider({ children }: { children: React.ReactNode }) {
   const [user, setUser] = React.useState<SessionUser | null>(() =>
-    getAuthToken() ? loadStoredUser() : null
+    getAuthToken() ? loadStoredUser() : null,
   );
+  const [forbidden, setForbidden] = React.useState(false);
+  const clearForbidden = React.useCallback(() => setForbidden(false), []);
 
   React.useEffect(() => {
     onUnauthorized(() => {
       setUser(null);
       storeUser(null);
     });
-    return () => onUnauthorized(null);
+    onForbidden(() => setForbidden(true));
+    return () => {
+      onUnauthorized(null);
+      onForbidden(null);
+    };
   }, []);
 
   const login = React.useCallback(async (email: string, password: string) => {
@@ -81,8 +91,8 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   }, []);
 
   const value = React.useMemo<AuthContextValue>(
-    () => ({ user, isAuthenticated: !!user, login, logout }),
-    [user, login, logout]
+    () => ({ user, isAuthenticated: !!user, login, logout, forbidden, clearForbidden }),
+    [user, login, logout, forbidden, clearForbidden],
   );
 
   return <AuthContext.Provider value={value}>{children}</AuthContext.Provider>;

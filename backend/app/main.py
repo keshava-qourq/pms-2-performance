@@ -11,7 +11,7 @@ import os
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 
-from app.routers import auth, me
+from app.routers import admin, auth, employees, me
 from app.services import configured_services
 
 app = FastAPI(
@@ -36,6 +36,8 @@ app.add_middleware(
 
 app.include_router(auth.router)
 app.include_router(me.router)
+app.include_router(admin.router)
+app.include_router(employees.router)
 
 
 @app.get("/health")

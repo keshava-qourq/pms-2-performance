@@ -1,40 +1,20 @@
-"""HR Admin employee management, CSV bulk import, a manager's view of a
-direct report's goals, and GDPR erasure."""
+"""Employee-scoped resources: manager scoping to self + direct reports (AC-005)."""
 
-import uuid
+from fastapi import APIRouter, Depends
 
-from fastapi import APIRouter, File, UploadFile
-
-from app.schemas import EmployeeCreate, EmployeeUpdate, StubResponse
+from app.deps import require_self_or_report
+from app.models import Employee
+from app.schemas import StubResponse
 
 router = APIRouter(tags=["employees"])
 
 
-@router.post("/admin/employees", response_model=StubResponse)
-async def create_employee(body: EmployeeCreate) -> StubResponse:
-    return StubResponse(endpoint="POST /admin/employees")
-
-
-@router.patch("/admin/employees/{employee_id}", response_model=StubResponse)
-async def update_employee(employee_id: uuid.UUID, body: EmployeeUpdate) -> StubResponse:
-    return StubResponse(endpoint="PATCH /admin/employees/{id}")
-
-
-@router.post("/admin/imports", response_model=StubResponse)
-async def upload_csv_import(file: UploadFile = File(...)) -> StubResponse:  # noqa: B008
-    return StubResponse(endpoint="POST /admin/imports")
-
-
-@router.get("/admin/imports/{job_id}", response_model=StubResponse)
-async def get_csv_import(job_id: uuid.UUID) -> StubResponse:
-    return StubResponse(endpoint="GET /admin/imports/{job_id}")
-
-
-@router.get("/employees/{employee_id}/goals", response_model=StubResponse)
-async def get_direct_report_goals(employee_id: uuid.UUID) -> StubResponse:
-    return StubResponse(endpoint="GET /employees/{id}/goals")
-
-
-@router.post("/admin/employees/{employee_id}/erase", response_model=StubResponse)
-async def erase_employee(employee_id: uuid.UUID) -> StubResponse:
-    return StubResponse(endpoint="POST /admin/employees/{id}/erase")
+@router.get("/employees/{id}/goals", response_model=StubResponse)
+def get_employee_goals(
+    id: str,
+    current: Employee = Depends(require_self_or_report("id")),  # noqa: B008
+) -> StubResponse:
+    """A manager views a direct report's goals; an unrelated manager or any
+    other employee is denied. Goal content itself is implemented elsewhere;
+    this route exists so the scoping guard has a real endpoint to protect."""
+    return StubResponse(endpoint="get_employees_id_goals")
