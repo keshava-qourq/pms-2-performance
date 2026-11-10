@@ -1,12 +1,11 @@
 // @ts-nocheck -- generated from the approved design under its JS runtime contract; not hand-written TypeScript.
-/* eslint-disable @typescript-eslint/no-unused-vars */
+
 import React from "react";
 
 import { Icons } from "@/lib/icons";
 import { brand } from "@/lib/brand";
 import { useNavigate } from "@/lib/navigate";
 
-// eslint-disable-next-line @typescript-eslint/no-unused-vars
 const { AlertCircle } = Icons;
 
 const PRODUCT = "PMS 2 performance";
@@ -63,7 +62,13 @@ export default function Screen() {
 
   React.useEffect(() => () => clearTimeout(timer.current), []);
 
-  const field = { border: HAIRLINE, borderRadius: brand.radius, height: 46, backgroundColor: "rgba(0,0,0,0.25)", color: brand.primaryColor };
+  const field = {
+    border: HAIRLINE,
+    borderRadius: brand.radius,
+    height: 46,
+    backgroundColor: "rgba(0,0,0,0.25)",
+    color: brand.primaryColor,
+  };
   const label = { color: brand.neutralColor, letterSpacing: "0.18em" };
   const focusStyle = (name) =>
     focused === name
@@ -77,7 +82,7 @@ export default function Screen() {
     clearTimeout(timer.current);
     timer.current = setTimeout(() => {
       const match = ACCOUNTS.find(
-        (a) => a.email.toLowerCase() === email.trim().toLowerCase() && a.password === password
+        (a) => a.email.toLowerCase() === email.trim().toLowerCase() && a.password === password,
       );
       if (match) {
         setSession(match);
@@ -98,11 +103,29 @@ export default function Screen() {
   };
 
   return (
-    <div className="flex min-h-screen items-center justify-center px-6" style={{ color: brand.primaryColor, fontFamily: brand.fontBody }}>
-      <main className="w-full max-w-md p-10" style={{ backgroundColor: "rgba(255,255,255,0.04)", border: HAIRLINE, borderRadius: brand.radius }}>
-        <h1 className="text-3xl" style={{ fontFamily: brand.fontHeading }}>{PRODUCT}</h1>
-        <div aria-hidden className="mt-3 h-px w-12" style={{ backgroundColor: brand.accentColor }} />
-        <p className="mt-3 text-xs uppercase" style={label}>{SCREEN}</p>
+    <div
+      className="flex min-h-screen items-center justify-center px-6"
+      style={{ color: brand.primaryColor, fontFamily: brand.fontBody }}
+    >
+      <main
+        className="w-full max-w-md p-10"
+        style={{
+          backgroundColor: "rgba(255,255,255,0.04)",
+          border: HAIRLINE,
+          borderRadius: brand.radius,
+        }}
+      >
+        <h1 className="text-3xl" style={{ fontFamily: brand.fontHeading }}>
+          {PRODUCT}
+        </h1>
+        <div
+          aria-hidden
+          className="mt-3 h-px w-12"
+          style={{ backgroundColor: brand.accentColor }}
+        />
+        <p className="mt-3 text-xs uppercase" style={label}>
+          {SCREEN}
+        </p>
 
         {status === "done" && session ? (
           <div className="mt-8">
@@ -113,13 +136,19 @@ export default function Screen() {
               Signed in as {session.email}.
             </p>
             <p className="mt-6 text-xs uppercase" style={label}>
-              Role <span style={{ color: brand.accentColor }}>{session.role}</span> · Landing on {session.landingLabel}
+              Role <span style={{ color: brand.accentColor }}>{session.role}</span> · Landing on{" "}
+              {session.landingLabel}
             </p>
             <button
               type="button"
               onClick={() => navigate(session.landing)}
               className="mt-6 h-12 w-full text-xs font-bold uppercase tracking-[0.25em] transition-opacity hover:opacity-90 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-offset-2"
-              style={{ backgroundColor: brand.accentColor, color: brand.backgroundColor, borderRadius: brand.radius, outlineColor: brand.accentColor }}
+              style={{
+                backgroundColor: brand.accentColor,
+                color: brand.backgroundColor,
+                borderRadius: brand.radius,
+                outlineColor: brand.accentColor,
+              }}
             >
               Continue to {session.landingLabel}
             </button>
@@ -130,20 +159,36 @@ export default function Screen() {
               <div
                 role="alert"
                 className="flex gap-3 p-3"
-                style={{ border: HAIRLINE, borderRadius: brand.radius, backgroundColor: "rgba(0,0,0,0.25)" }}
+                style={{
+                  border: HAIRLINE,
+                  borderRadius: brand.radius,
+                  backgroundColor: "rgba(0,0,0,0.25)",
+                }}
               >
-                <AlertCircle aria-hidden className="mt-0.5 h-4 w-4 shrink-0" style={{ color: brand.accentColor }} />
+                <AlertCircle
+                  aria-hidden
+                  className="mt-0.5 h-4 w-4 shrink-0"
+                  style={{ color: brand.accentColor }}
+                />
                 <div>
-                  <p className="text-xs font-bold uppercase" style={{ ...label, color: brand.primaryColor }}>Sign-in failed</p>
+                  <p
+                    className="text-xs font-bold uppercase"
+                    style={{ ...label, color: brand.primaryColor }}
+                  >
+                    Sign-in failed
+                  </p>
                   <p className="mt-1 text-sm leading-relaxed" style={{ color: brand.neutralColor }}>
-                    That email and password don’t match an account on this workspace. Your entries are kept — check both and try again.
+                    That email and password don’t match an account on this workspace. Your entries
+                    are kept — check both and try again.
                   </p>
                 </div>
               </div>
             )}
 
             <div className="space-y-2">
-              <label htmlFor="vl-email" className="block text-xs uppercase" style={label}>Work email</label>
+              <label htmlFor="vl-email" className="block text-xs uppercase" style={label}>
+                Work email
+              </label>
               <input
                 id="vl-email"
                 type="email"
@@ -159,7 +204,9 @@ export default function Screen() {
               />
             </div>
             <div className="space-y-2">
-              <label htmlFor="vl-password" className="block text-xs uppercase" style={label}>Password</label>
+              <label htmlFor="vl-password" className="block text-xs uppercase" style={label}>
+                Password
+              </label>
               <input
                 id="vl-password"
                 type="password"
@@ -179,7 +226,12 @@ export default function Screen() {
               disabled={status === "checking"}
               aria-busy={status === "checking"}
               className="h-12 w-full text-xs font-bold uppercase tracking-[0.25em] transition-opacity hover:opacity-90 disabled:opacity-60 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-offset-2"
-              style={{ backgroundColor: brand.accentColor, color: brand.backgroundColor, borderRadius: brand.radius, outlineColor: brand.accentColor }}
+              style={{
+                backgroundColor: brand.accentColor,
+                color: brand.backgroundColor,
+                borderRadius: brand.radius,
+                outlineColor: brand.accentColor,
+              }}
             >
               {status === "checking" ? "Checking credentials…" : "Sign in"}
             </button>
@@ -200,7 +252,11 @@ export default function Screen() {
             Use a demo account
           </button>
           {filled && (
-            <span role="status" className="mt-2 block normal-case" style={{ letterSpacing: "normal" }}>
+            <span
+              role="status"
+              className="mt-2 block normal-case"
+              style={{ letterSpacing: "normal" }}
+            >
               Filled {filled.role}: {filled.email}
             </span>
           )}

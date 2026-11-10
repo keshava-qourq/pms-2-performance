@@ -7,15 +7,41 @@ import { Icons } from "@/lib/icons";
 import { brand } from "@/lib/brand";
 import { useNavigate } from "@/lib/navigate";
 
-// eslint-disable-next-line @typescript-eslint/no-unused-vars
-const { Card, CardHeader, CardDescription, CardContent, CardFooter, Input, Textarea, Label, Select, Switch, Badge, Table, THead, TBody, TR, TH, TD, Avatar, Separator, Tabs, Empty } = UI;
-// eslint-disable-next-line @typescript-eslint/no-unused-vars
+const {
+  Card,
+  CardHeader,
+  CardDescription,
+  CardContent,
+  CardFooter,
+  Input,
+  Textarea,
+  Label,
+  Select,
+  Switch,
+  Badge,
+  Table,
+  THead,
+  TBody,
+  TR,
+  TH,
+  TD,
+  Avatar,
+  Separator,
+  Tabs,
+  Empty,
+} = UI;
+
 const { Search } = Icons;
 
 const ME = { id: "emp-104", name: "Marcus Elleby", title: "Senior Product Engineer" };
 
 const COLLEAGUES = [
-  { id: "emp-101", name: "Ines Marchetti", title: "Engineering Manager · your manager", status: "active" },
+  {
+    id: "emp-101",
+    name: "Ines Marchetti",
+    title: "Engineering Manager · your manager",
+    status: "active",
+  },
   { id: "emp-112", name: "Amara Okafor", title: "Product Manager", status: "active" },
   { id: "emp-118", name: "Daniel Weiss", title: "Backend Engineer", status: "active" },
   { id: "emp-121", name: "Tobias Lindqvist", title: "Design Lead", status: "active" },
@@ -23,7 +49,12 @@ const COLLEAGUES = [
   { id: "emp-133", name: "Kenji Watanabe", title: "Frontend Engineer", status: "active" },
   { id: "emp-139", name: "Jonas Brandt", title: "QA Engineer", status: "active" },
   { id: "emp-140", name: "Hélène Dupont", title: "People Partner", status: "active" },
-  { id: "emp-147", name: "Priya Raghunathan", title: "Data Analyst · record closed", status: "closed" },
+  {
+    id: "emp-147",
+    name: "Priya Raghunathan",
+    title: "Data Analyst · record closed",
+    status: "closed",
+  },
 ];
 
 const INITIAL_RECEIVED = [
@@ -194,8 +225,22 @@ const INITIAL_SENT = [
 ];
 
 const INITIAL_INCOMING = [
-  { id: "fr-329", personId: "emp-112", person: "Amara Okafor", role: "Product Manager", asked: "22 Oct 2026", state: "pending" },
-  { id: "fr-336", personId: "emp-140", person: "Hélène Dupont", role: "People Partner", asked: "29 Oct 2026", state: "pending" },
+  {
+    id: "fr-329",
+    personId: "emp-112",
+    person: "Amara Okafor",
+    role: "Product Manager",
+    asked: "22 Oct 2026",
+    state: "pending",
+  },
+  {
+    id: "fr-336",
+    personId: "emp-140",
+    person: "Hélène Dupont",
+    role: "People Partner",
+    asked: "29 Oct 2026",
+    state: "pending",
+  },
 ];
 
 const SORTS = [
@@ -286,7 +331,11 @@ export default function Screen() {
 }
 `;
 
-  const panel = { backgroundColor: "rgba(255,255,255,0.035)", border: "1px solid rgba(255,255,255,0.11)", borderRadius: brand.radius };
+  const panel = {
+    backgroundColor: "rgba(255,255,255,0.035)",
+    border: "1px solid rgba(255,255,255,0.11)",
+    borderRadius: brand.radius,
+  };
   const fieldStyle = {
     backgroundColor: "rgba(255,255,255,0.04)",
     border: "1px solid rgba(255,255,255,0.14)",
@@ -316,7 +365,12 @@ export default function Screen() {
     fontSize: "14px",
     minHeight: "44px",
   };
-  const label = { color: muted, fontSize: "11px", letterSpacing: "0.14em", textTransform: "uppercase" };
+  const label = {
+    color: muted,
+    fontSize: "11px",
+    letterSpacing: "0.14em",
+    textTransform: "uppercase",
+  };
 
   const waiting = incoming.filter((r) => r.state === "pending");
 
@@ -353,8 +407,11 @@ export default function Screen() {
   function handleSubmit(e) {
     e.preventDefault();
     const next = {};
-    if (!recipient) next.recipient = mode === "give" ? "Choose who this feedback is for." : "Choose who you're asking.";
-    if (mode === "give" && !content.trim()) next.content = "Write a few lines first — an empty note can't be sent.";
+    if (!recipient)
+      next.recipient =
+        mode === "give" ? "Choose who this feedback is for." : "Choose who you're asking.";
+    if (mode === "give" && !content.trim())
+      next.content = "Write a few lines first — an empty note can't be sent.";
     setErrors(next);
     setFormError(null);
     if (Object.keys(next).length) {
@@ -370,7 +427,7 @@ export default function Screen() {
       if (person.status === "closed") {
         setFormError(
           person.name +
-            "'s employee record was closed on 12 October, so nothing can be filed against it. Your draft is kept — pick another colleague, or ask People Ops to reopen the record."
+            "'s employee record was closed on 12 October, so nothing can be filed against it. Your draft is kept — pick another colleague, or ask People Ops to reopen the record.",
         );
         return;
       }
@@ -390,9 +447,17 @@ export default function Screen() {
         };
         setGiven((prev) => [item, ...prev]);
         if (linkedRequest) {
-          setIncoming((prev) => prev.map((r) => (r.id === linkedRequest.id ? { ...r, state: "answered" } : r)));
+          setIncoming((prev) =>
+            prev.map((r) => (r.id === linkedRequest.id ? { ...r, state: "answered" } : r)),
+          );
         }
-        setBanner({ kind: "sent", text: "Feedback sent to " + person.name + ". Only the two of you and your managers can read it." });
+        setBanner({
+          kind: "sent",
+          text:
+            "Feedback sent to " +
+            person.name +
+            ". Only the two of you and your managers can read it.",
+        });
         setTab("given");
       } else {
         const req = {
@@ -405,7 +470,13 @@ export default function Screen() {
           isNew: true,
         };
         setSent((prev) => [req, ...prev]);
-        setBanner({ kind: "sent", text: "Request sent to " + person.name + ". It's in their inbox now; you'll be notified when they answer." });
+        setBanner({
+          kind: "sent",
+          text:
+            "Request sent to " +
+            person.name +
+            ". It's in their inbox now; you'll be notified when they answer.",
+        });
         setTab("requests");
       }
       setContent("");
@@ -420,7 +491,11 @@ export default function Screen() {
   function matches(item) {
     const q = query.trim().toLowerCase();
     if (!q) return true;
-    return item.person.toLowerCase().includes(q) || item.content.toLowerCase().includes(q) || item.role.toLowerCase().includes(q);
+    return (
+      item.person.toLowerCase().includes(q) ||
+      item.content.toLowerCase().includes(q) ||
+      item.role.toLowerCase().includes(q)
+    );
   }
 
   function ordered(list) {
@@ -445,22 +520,43 @@ export default function Screen() {
 
   const statusChip = (status) => {
     if (status === "answered") return { text: "Answered", color: accent, Icon: Icons.CheckCircle };
-    if (status === "pending") return { text: "Awaiting reply", color: "var(--warn)", Icon: Icons.Clock };
+    if (status === "pending")
+      return { text: "Awaiting reply", color: "var(--warn)", Icon: Icons.Clock };
     return { text: "Declined", color: muted, Icon: Icons.X };
   };
 
   const metric = (value, labelText, hint, strong) => (
-    <div className="px-5 py-3" style={{ borderLeft: "1px solid rgba(255,255,255,0.11)", fontVariantNumeric: "tabular-nums" }}>
-      <div style={{ fontFamily: brand.fontHeading, fontSize: "28px", lineHeight: 1.1, color: strong ? accent : ink }}>{value}</div>
-      <div className="mt-1" style={label}>{labelText}</div>
-      <div className="mt-0.5 text-xs" style={{ color: muted }}>{hint}</div>
+    <div
+      className="px-5 py-3"
+      style={{ borderLeft: "1px solid rgba(255,255,255,0.11)", fontVariantNumeric: "tabular-nums" }}
+    >
+      <div
+        style={{
+          fontFamily: brand.fontHeading,
+          fontSize: "28px",
+          lineHeight: 1.1,
+          color: strong ? accent : ink,
+        }}
+      >
+        {value}
+      </div>
+      <div className="mt-1" style={label}>
+        {labelText}
+      </div>
+      <div className="mt-0.5 text-xs" style={{ color: muted }}>
+        {hint}
+      </div>
     </div>
   );
 
   const feedbackList = (items, kind) => (
     <ul className="list-none m-0 p-0">
       {items.map((item) => (
-        <li key={item.id} className={"vel-row " + (item.isNew ? "vel-enter" : "")} style={{ borderBottom: "1px solid rgba(255,255,255,0.11)" }}>
+        <li
+          key={item.id}
+          className={"vel-row " + (item.isNew ? "vel-enter" : "")}
+          style={{ borderBottom: "1px solid rgba(255,255,255,0.11)" }}
+        >
           <article className="px-6 py-6 sm:px-8">
             <div className="flex items-start gap-4">
               <Avatar name={item.person} className="vel-av shrink-0" />
@@ -470,7 +566,10 @@ export default function Screen() {
                     {kind === "given" ? "To " + item.person : item.person}
                   </h3>
                   <span style={{ ...label, letterSpacing: "0.1em" }}>{item.role}</span>
-                  <span className="ml-auto text-xs" style={{ color: muted, fontVariantNumeric: "tabular-nums" }}>
+                  <span
+                    className="ml-auto text-xs"
+                    style={{ color: muted, fontVariantNumeric: "tabular-nums" }}
+                  >
                     {item.date}
                   </span>
                 </div>
@@ -479,7 +578,9 @@ export default function Screen() {
                     <Badge
                       style={{
                         backgroundColor: "transparent",
-                        border: "1px solid " + (item.tag === "Constructive" ? "rgba(255,255,255,0.18)" : accent),
+                        border:
+                          "1px solid " +
+                          (item.tag === "Constructive" ? "rgba(255,255,255,0.18)" : accent),
                         color: item.tag === "Constructive" ? muted : accent,
                         borderRadius: brand.radius,
                         fontSize: "11px",
@@ -492,12 +593,20 @@ export default function Screen() {
                     </Badge>
                   </div>
                 ) : null}
-                <p className="mt-3 mb-0 text-[15px] leading-[1.65] max-w-[68ch]" style={{ color: ink, opacity: 0.92 }}>
+                <p
+                  className="mt-3 mb-0 text-[15px] leading-[1.65] max-w-[68ch]"
+                  style={{ color: ink, opacity: 0.92 }}
+                >
                   {item.content}
                 </p>
                 {kind === "received" ? (
                   <div className="mt-4">
-                    <button type="button" className="vel-btn" style={ghostBtn} onClick={() => writeBack(item.personId)}>
+                    <button
+                      type="button"
+                      className="vel-btn"
+                      style={ghostBtn}
+                      onClick={() => writeBack(item.personId)}
+                    >
                       Write back to {item.person.split(" ")[0]}
                     </button>
                   </div>
@@ -511,7 +620,10 @@ export default function Screen() {
   );
 
   return (
-    <div className="vel-root" style={{ backgroundColor: brand.backgroundColor, fontFamily: brand.fontBody, color: ink }}>
+    <div
+      className="vel-root"
+      style={{ backgroundColor: brand.backgroundColor, fontFamily: brand.fontBody, color: ink }}
+    >
       <style>{css}</style>
 
       <div className="mx-auto w-full max-w-6xl px-6 py-10 sm:px-8">
@@ -521,11 +633,24 @@ export default function Screen() {
             <p className="m-0" style={{ ...label, color: accent }}>
               Continuous feedback
             </p>
-            <h1 className="mt-3 mb-0" style={{ fontFamily: brand.fontHeading, fontSize: "38px", lineHeight: 1.12, letterSpacing: "-0.01em", color: ink }}>
+            <h1
+              className="mt-3 mb-0"
+              style={{
+                fontFamily: brand.fontHeading,
+                fontSize: "38px",
+                lineHeight: 1.12,
+                letterSpacing: "-0.01em",
+                color: ink,
+              }}
+            >
               Feedback
             </h1>
-            <p className="mt-3 mb-0 text-[15px] leading-relaxed max-w-[62ch]" style={{ color: muted }}>
-              Notes you've written, notes written about you, and the requests waiting on a reply. None of this is tied to a review cycle.
+            <p
+              className="mt-3 mb-0 text-[15px] leading-relaxed max-w-[62ch]"
+              style={{ color: muted }}
+            >
+              Notes you've written, notes written about you, and the requests waiting on a reply.
+              None of this is tied to a review cycle.
             </p>
             <p className="mt-3 mb-0 flex items-center gap-2 text-xs" style={{ color: muted }}>
               <Icons.Clock className="h-3.5 w-3.5" aria-hidden="true" />
@@ -535,7 +660,12 @@ export default function Screen() {
           <div className="flex flex-wrap">
             {metric(received.length, "Received", "This quarter", false)}
             {metric(given.length, "Given", "This quarter", false)}
-            {metric(waiting.length, "Waiting on you", waiting.length === 0 ? "All answered" : "Needs a reply", waiting.length > 0)}
+            {metric(
+              waiting.length,
+              "Waiting on you",
+              waiting.length === 0 ? "All answered" : "Needs a reply",
+              waiting.length > 0,
+            )}
           </div>
         </header>
 
@@ -547,7 +677,15 @@ export default function Screen() {
             <CardHeader className="px-6 pt-6 pb-0 sm:px-8 sm:pt-8">
               <div className="flex flex-wrap items-start justify-between gap-4">
                 <div>
-                  <h2 className="m-0" style={{ fontFamily: brand.fontHeading, fontSize: "25px", lineHeight: 1.2, color: ink }}>
+                  <h2
+                    className="m-0"
+                    style={{
+                      fontFamily: brand.fontHeading,
+                      fontSize: "25px",
+                      lineHeight: 1.2,
+                      color: ink,
+                    }}
+                  >
                     {mode === "give" ? "Give feedback" : "Ask for feedback"}
                   </h2>
                   <CardDescription className="mt-2 text-[14px]" style={{ color: muted }}>
@@ -556,7 +694,12 @@ export default function Screen() {
                       : "They'll see your request in their inbox and can answer or pass."}
                   </CardDescription>
                 </div>
-                <div role="group" aria-label="What would you like to do" className="flex gap-1 p-1" style={{ border: "1px solid rgba(255,255,255,0.11)", borderRadius: brand.radius }}>
+                <div
+                  role="group"
+                  aria-label="What would you like to do"
+                  className="flex gap-1 p-1"
+                  style={{ border: "1px solid rgba(255,255,255,0.11)", borderRadius: brand.radius }}
+                >
                   {[
                     { key: "give", text: "Write" },
                     { key: "request", text: "Request" },
@@ -589,13 +732,33 @@ export default function Screen() {
             <form onSubmit={handleSubmit} noValidate>
               <CardContent className="px-6 pt-6 sm:px-8">
                 {linkedRequest ? (
-                  <div className="vel-fade mb-5 flex items-start gap-3 px-4 py-3" style={{ border: "1px solid " + accent, borderRadius: brand.radius, backgroundColor: "rgba(255,255,255,0.035)" }}>
-                    <Icons.ArrowLeft className="mt-0.5 h-4 w-4 shrink-0" aria-hidden="true" style={{ color: accent }} />
+                  <div
+                    className="vel-fade mb-5 flex items-start gap-3 px-4 py-3"
+                    style={{
+                      border: "1px solid " + accent,
+                      borderRadius: brand.radius,
+                      backgroundColor: "rgba(255,255,255,0.035)",
+                    }}
+                  >
+                    <Icons.ArrowLeft
+                      className="mt-0.5 h-4 w-4 shrink-0"
+                      aria-hidden="true"
+                      style={{ color: accent }}
+                    />
                     <p className="m-0 flex-1 text-[13px] leading-relaxed" style={{ color: ink }}>
                       Replying to <strong>{linkedRequest.person}</strong>'s request from{" "}
-                      <span style={{ fontVariantNumeric: "tabular-nums" }}>{linkedRequest.asked}</span> · <span style={{ color: muted }}>{linkedRequest.id}</span>
+                      <span style={{ fontVariantNumeric: "tabular-nums" }}>
+                        {linkedRequest.asked}
+                      </span>{" "}
+                      · <span style={{ color: muted }}>{linkedRequest.id}</span>
                     </p>
-                    <button type="button" aria-label="Unlink this feedback request" className="vel-btn" style={{ ...ghostBtn, padding: "4px", minHeight: "32px", width: "32px" }} onClick={() => setLinkedRequest(null)}>
+                    <button
+                      type="button"
+                      aria-label="Unlink this feedback request"
+                      className="vel-btn"
+                      style={{ ...ghostBtn, padding: "4px", minHeight: "32px", width: "32px" }}
+                      onClick={() => setLinkedRequest(null)}
+                    >
                       <Icons.X className="h-4 w-4 mx-auto" aria-hidden="true" />
                     </button>
                   </div>
@@ -618,7 +781,11 @@ export default function Screen() {
                       }}
                       aria-invalid={errors.recipient ? "true" : "false"}
                       aria-describedby={errors.recipient ? "colleague-error" : undefined}
-                      style={{ ...fieldStyle, borderColor: errors.recipient ? "var(--danger)" : "rgba(255,255,255,0.14)", minHeight: "44px" }}
+                      style={{
+                        ...fieldStyle,
+                        borderColor: errors.recipient ? "var(--danger)" : "rgba(255,255,255,0.14)",
+                        minHeight: "44px",
+                      }}
                     >
                       <option value="">Choose a colleague…</option>
                       {COLLEAGUES.map((c) => (
@@ -628,7 +795,11 @@ export default function Screen() {
                       ))}
                     </Select>
                     {errors.recipient ? (
-                      <p id="colleague-error" className="vel-fade mt-2 mb-0 flex items-center gap-2 text-[13px]" style={{ color: "var(--danger)" }}>
+                      <p
+                        id="colleague-error"
+                        className="vel-fade mt-2 mb-0 flex items-center gap-2 text-[13px]"
+                        style={{ color: "var(--danger)" }}
+                      >
                         <Icons.AlertCircle className="h-4 w-4" aria-hidden="true" />
                         {errors.recipient}
                       </p>
@@ -652,34 +823,79 @@ export default function Screen() {
                           setErrors((p) => ({ ...p, content: null }));
                         }}
                         aria-invalid={errors.content ? "true" : "false"}
-                        aria-describedby={errors.content ? "content-error content-hint" : "content-hint"}
-                        style={{ ...fieldStyle, lineHeight: 1.6, resize: "vertical", borderColor: errors.content ? "var(--danger)" : "rgba(255,255,255,0.14)" }}
+                        aria-describedby={
+                          errors.content ? "content-error content-hint" : "content-hint"
+                        }
+                        style={{
+                          ...fieldStyle,
+                          lineHeight: 1.6,
+                          resize: "vertical",
+                          borderColor: errors.content ? "var(--danger)" : "rgba(255,255,255,0.14)",
+                        }}
                       />
-                      <p id="content-hint" className="mt-2 mb-0 text-xs" style={{ color: muted, fontVariantNumeric: "tabular-nums" }}>
-                        {content.trim().length} characters · {COLLEAGUES.find((c) => c.id === recipient) ? COLLEAGUES.find((c) => c.id === recipient).name.split(" ")[0] + " and their manager will see this." : "The recipient and their manager will see this."}
+                      <p
+                        id="content-hint"
+                        className="mt-2 mb-0 text-xs"
+                        style={{ color: muted, fontVariantNumeric: "tabular-nums" }}
+                      >
+                        {content.trim().length} characters ·{" "}
+                        {COLLEAGUES.find((c) => c.id === recipient)
+                          ? COLLEAGUES.find((c) => c.id === recipient).name.split(" ")[0] +
+                            " and their manager will see this."
+                          : "The recipient and their manager will see this."}
                       </p>
                       {errors.content ? (
-                        <p id="content-error" className="vel-fade mt-2 mb-0 flex items-center gap-2 text-[13px]" style={{ color: "var(--danger)" }}>
+                        <p
+                          id="content-error"
+                          className="vel-fade mt-2 mb-0 flex items-center gap-2 text-[13px]"
+                          style={{ color: "var(--danger)" }}
+                        >
                           <Icons.AlertCircle className="h-4 w-4" aria-hidden="true" />
                           {errors.content}
                         </p>
                       ) : null}
                     </div>
                   ) : (
-                    <p className="m-0 px-4 py-3 text-[14px] leading-relaxed" style={{ color: muted, border: "1px dashed rgba(255,255,255,0.14)", borderRadius: brand.radius }}>
-                      A request carries no message — just your name and the date. Keep the context for the conversation itself; most people answer within a week.
+                    <p
+                      className="m-0 px-4 py-3 text-[14px] leading-relaxed"
+                      style={{
+                        color: muted,
+                        border: "1px dashed rgba(255,255,255,0.14)",
+                        borderRadius: brand.radius,
+                      }}
+                    >
+                      A request carries no message — just your name and the date. Keep the context
+                      for the conversation itself; most people answer within a week.
                     </p>
                   )}
                 </div>
 
                 {formError ? (
-                  <div className="vel-fade mt-5 flex items-start gap-3 px-4 py-3" role="alert" style={{ border: "1px solid var(--danger)", borderRadius: brand.radius, backgroundColor: "rgba(255,255,255,0.035)" }}>
-                    <Icons.AlertCircle className="mt-0.5 h-4 w-4 shrink-0" aria-hidden="true" style={{ color: "var(--danger)" }} />
+                  <div
+                    className="vel-fade mt-5 flex items-start gap-3 px-4 py-3"
+                    role="alert"
+                    style={{
+                      border: "1px solid var(--danger)",
+                      borderRadius: brand.radius,
+                      backgroundColor: "rgba(255,255,255,0.035)",
+                    }}
+                  >
+                    <Icons.AlertCircle
+                      className="mt-0.5 h-4 w-4 shrink-0"
+                      aria-hidden="true"
+                      style={{ color: "var(--danger)" }}
+                    />
                     <div>
-                      <p className="m-0 text-[13px] font-semibold" style={{ color: "var(--danger)" }}>
+                      <p
+                        className="m-0 text-[13px] font-semibold"
+                        style={{ color: "var(--danger)" }}
+                      >
                         Not sent
                       </p>
-                      <p className="mt-1 mb-0 text-[13px] leading-relaxed" style={{ color: ink, opacity: 0.9 }}>
+                      <p
+                        className="mt-1 mb-0 text-[13px] leading-relaxed"
+                        style={{ color: ink, opacity: 0.9 }}
+                      >
                         {formError}
                       </p>
                     </div>
@@ -720,7 +936,18 @@ export default function Screen() {
                 </button>
                 <p className="m-0 ml-auto text-xs" style={{ color: muted }}>
                   Writing about a goal?{" "}
-                  <button type="button" className="underline underline-offset-4" style={{ color: accent, background: "none", border: "none", padding: 0, cursor: "pointer" }} onClick={() => navigate("goals")}>
+                  <button
+                    type="button"
+                    className="underline underline-offset-4"
+                    style={{
+                      color: accent,
+                      background: "none",
+                      border: "none",
+                      padding: 0,
+                      cursor: "pointer",
+                    }}
+                    onClick={() => navigate("goals")}
+                  >
                     Open Goals
                   </button>
                 </p>
@@ -731,7 +958,10 @@ export default function Screen() {
           {/* Waiting on you */}
           <Card style={panel}>
             <CardHeader className="px-6 pt-6 pb-0">
-              <h2 className="m-0" style={{ fontFamily: brand.fontHeading, fontSize: "21px", color: ink }}>
+              <h2
+                className="m-0"
+                style={{ fontFamily: brand.fontHeading, fontSize: "21px", color: ink }}
+              >
                 Waiting on you
               </h2>
               <CardDescription className="mt-2 text-[13px]" style={{ color: muted }}>
@@ -739,19 +969,36 @@ export default function Screen() {
               </CardDescription>
             </CardHeader>
             <CardContent className="px-6 pb-6 pt-5">
-              {incoming.length === 0 || waiting.length + incoming.filter((r) => r.state === "declined").length === 0 ? (
-                <Empty className="vel-empty" title="No one's waiting on you" description="Requests from colleagues land here. You've answered everything that came in this week." />
+              {incoming.length === 0 ||
+              waiting.length + incoming.filter((r) => r.state === "declined").length === 0 ? (
+                <Empty
+                  className="vel-empty"
+                  title="No one's waiting on you"
+                  description="Requests from colleagues land here. You've answered everything that came in this week."
+                />
               ) : (
                 <ul className="list-none m-0 p-0 flex flex-col gap-3">
                   {incoming.map((r) => (
-                    <li key={r.id} className={r.state === "answered" ? "vel-fade" : ""} style={{ border: "1px solid rgba(255,255,255,0.11)", borderRadius: brand.radius, padding: "16px", opacity: r.state === "pending" ? 1 : 0.72 }}>
+                    <li
+                      key={r.id}
+                      className={r.state === "answered" ? "vel-fade" : ""}
+                      style={{
+                        border: "1px solid rgba(255,255,255,0.11)",
+                        borderRadius: brand.radius,
+                        padding: "16px",
+                        opacity: r.state === "pending" ? 1 : 0.72,
+                      }}
+                    >
                       <div className="flex items-start gap-3">
                         <Avatar name={r.person} className="vel-av shrink-0" />
                         <div className="min-w-0 flex-1">
                           <h3 className="m-0 text-[14px] font-semibold" style={{ color: ink }}>
                             {r.person}
                           </h3>
-                          <p className="mt-0.5 mb-0 text-xs" style={{ color: muted, fontVariantNumeric: "tabular-nums" }}>
+                          <p
+                            className="mt-0.5 mb-0 text-xs"
+                            style={{ color: muted, fontVariantNumeric: "tabular-nums" }}
+                          >
                             {r.role} · asked {r.asked}
                           </p>
                         </div>
@@ -761,30 +1008,67 @@ export default function Screen() {
                         confirmDecline === r.id ? (
                           <div className="vel-fade mt-4">
                             <p className="m-0 text-[13px] leading-relaxed" style={{ color: ink }}>
-                              Decline {r.person.split(" ")[0]}'s request? They'll see that you passed, and can ask again later.
+                              Decline {r.person.split(" ")[0]}'s request? They'll see that you
+                              passed, and can ask again later.
                             </p>
                             <div className="mt-3 flex flex-wrap gap-2">
-                              <button type="button" className="vel-btn" style={{ ...ghostBtn, borderColor: "var(--danger)", color: "var(--danger)" }} onClick={() => declineRequest(r.id)}>
+                              <button
+                                type="button"
+                                className="vel-btn"
+                                style={{
+                                  ...ghostBtn,
+                                  borderColor: "var(--danger)",
+                                  color: "var(--danger)",
+                                }}
+                                onClick={() => declineRequest(r.id)}
+                              >
                                 Yes, decline
                               </button>
-                              <button type="button" className="vel-btn" style={ghostBtn} onClick={() => setConfirmDecline(null)}>
+                              <button
+                                type="button"
+                                className="vel-btn"
+                                style={ghostBtn}
+                                onClick={() => setConfirmDecline(null)}
+                              >
                                 Keep it open
                               </button>
                             </div>
                           </div>
                         ) : (
                           <div className="mt-4 flex flex-wrap gap-2">
-                            <button type="button" className="vel-primary" style={{ ...primaryBtn, padding: "9px 16px", fontSize: "13px", minHeight: "40px" }} onClick={() => startReply(r)}>
+                            <button
+                              type="button"
+                              className="vel-primary"
+                              style={{
+                                ...primaryBtn,
+                                padding: "9px 16px",
+                                fontSize: "13px",
+                                minHeight: "40px",
+                              }}
+                              onClick={() => startReply(r)}
+                            >
                               Write reply
                             </button>
-                            <button type="button" className="vel-btn" style={ghostBtn} onClick={() => setConfirmDecline(r.id)}>
+                            <button
+                              type="button"
+                              className="vel-btn"
+                              style={ghostBtn}
+                              onClick={() => setConfirmDecline(r.id)}
+                            >
                               Decline
                             </button>
                           </div>
                         )
                       ) : (
-                        <p className="mt-3 mb-0 flex items-center gap-2 text-[13px]" style={{ color: r.state === "answered" ? accent : muted }}>
-                          {r.state === "answered" ? <Icons.CheckCircle className="h-4 w-4" aria-hidden="true" /> : <Icons.X className="h-4 w-4" aria-hidden="true" />}
+                        <p
+                          className="mt-3 mb-0 flex items-center gap-2 text-[13px]"
+                          style={{ color: r.state === "answered" ? accent : muted }}
+                        >
+                          {r.state === "answered" ? (
+                            <Icons.CheckCircle className="h-4 w-4" aria-hidden="true" />
+                          ) : (
+                            <Icons.X className="h-4 w-4" aria-hidden="true" />
+                          )}
                           {r.state === "answered" ? "Answered — it's in Given" : "Declined"}
                         </p>
                       )}
@@ -798,12 +1082,30 @@ export default function Screen() {
 
         {/* Success banner */}
         {banner ? (
-          <div className="vel-enter mt-8 flex items-start gap-3 px-5 py-4" role="status" style={{ border: "1px solid " + accent, borderRadius: brand.radius, backgroundColor: "rgba(255,255,255,0.045)" }}>
-            <Icons.CheckCircle className="mt-0.5 h-4 w-4 shrink-0" aria-hidden="true" style={{ color: accent }} />
+          <div
+            className="vel-enter mt-8 flex items-start gap-3 px-5 py-4"
+            role="status"
+            style={{
+              border: "1px solid " + accent,
+              borderRadius: brand.radius,
+              backgroundColor: "rgba(255,255,255,0.045)",
+            }}
+          >
+            <Icons.CheckCircle
+              className="mt-0.5 h-4 w-4 shrink-0"
+              aria-hidden="true"
+              style={{ color: accent }}
+            />
             <p className="m-0 flex-1 text-[14px]" style={{ color: ink }}>
               {banner.text}
             </p>
-            <button type="button" aria-label="Dismiss confirmation" className="vel-btn" style={{ ...ghostBtn, padding: "4px", minHeight: "32px", width: "32px" }} onClick={() => setBanner(null)}>
+            <button
+              type="button"
+              aria-label="Dismiss confirmation"
+              className="vel-btn"
+              style={{ ...ghostBtn, padding: "4px", minHeight: "32px", width: "32px" }}
+              onClick={() => setBanner(null)}
+            >
               <Icons.X className="h-4 w-4 mx-auto" aria-hidden="true" />
             </button>
           </div>
@@ -812,7 +1114,11 @@ export default function Screen() {
         {/* Archive */}
         <section className="mt-10" aria-labelledby="archive-heading">
           <div className="flex flex-wrap items-end justify-between gap-4">
-            <h2 id="archive-heading" className="m-0" style={{ fontFamily: brand.fontHeading, fontSize: "25px", color: ink }}>
+            <h2
+              id="archive-heading"
+              className="m-0"
+              style={{ fontFamily: brand.fontHeading, fontSize: "25px", color: ink }}
+            >
               Your record
             </h2>
             <div className="flex flex-wrap items-end gap-3">
@@ -821,7 +1127,11 @@ export default function Screen() {
                   Search feedback by colleague or wording
                 </Label>
                 <div className="relative">
-                  <Icons.Search className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2" aria-hidden="true" style={{ color: muted }} />
+                  <Icons.Search
+                    className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2"
+                    aria-hidden="true"
+                    style={{ color: muted }}
+                  />
                   <Input
                     id="feedback-search"
                     type="search"
@@ -829,7 +1139,13 @@ export default function Screen() {
                     placeholder="Search a name or a phrase"
                     value={query}
                     onChange={(e) => setQuery(e.target.value)}
-                    style={{ ...fieldStyle, paddingLeft: "36px", minHeight: "44px", width: "260px", maxWidth: "100%" }}
+                    style={{
+                      ...fieldStyle,
+                      paddingLeft: "36px",
+                      minHeight: "44px",
+                      width: "260px",
+                      maxWidth: "100%",
+                    }}
                   />
                 </div>
               </div>
@@ -837,7 +1153,13 @@ export default function Screen() {
                 <Label htmlFor="sort" className="sr-only">
                   Sort feedback
                 </Label>
-                <Select id="sort" className="vel-field" value={sort} onChange={(e) => setSort(e.target.value)} style={{ ...fieldStyle, minHeight: "44px", width: "170px" }}>
+                <Select
+                  id="sort"
+                  className="vel-field"
+                  value={sort}
+                  onChange={(e) => setSort(e.target.value)}
+                  style={{ ...fieldStyle, minHeight: "44px", width: "170px" }}
+                >
                   {SORTS.map((s) => (
                     <option key={s.value} value={s.value} style={{ color: "#111" }}>
                       {s.label}
@@ -905,12 +1227,19 @@ export default function Screen() {
             ) : null}
 
             {tab === "requests" ? (
-              <section aria-label="Feedback requests you have sent" className="px-2 py-2 sm:px-4 sm:py-4">
+              <section
+                aria-label="Feedback requests you have sent"
+                className="px-2 py-2 sm:px-4 sm:py-4"
+              >
                 {visibleSent.length === 0 ? (
                   <div className="p-4">
                     <Empty
                       className="vel-empty"
-                      title={query.trim() ? "No requests match that search" : "You haven't asked anyone yet"}
+                      title={
+                        query.trim()
+                          ? "No requests match that search"
+                          : "You haven't asked anyone yet"
+                      }
                       description={
                         query.trim()
                           ? "Search by colleague name, or by pending, answered or declined."
@@ -929,19 +1258,39 @@ export default function Screen() {
                   <Table className="w-full" style={{ fontVariantNumeric: "tabular-nums" }}>
                     <THead>
                       <TR style={{ borderBottom: "1px solid rgba(255,255,255,0.11)" }}>
-                        <TH scope="col" className="px-4 py-3 text-left" style={{ ...label, fontWeight: 500 }}>
+                        <TH
+                          scope="col"
+                          className="px-4 py-3 text-left"
+                          style={{ ...label, fontWeight: 500 }}
+                        >
                           Colleague
                         </TH>
-                        <TH scope="col" className="px-4 py-3 text-left" style={{ ...label, fontWeight: 500 }}>
+                        <TH
+                          scope="col"
+                          className="px-4 py-3 text-left"
+                          style={{ ...label, fontWeight: 500 }}
+                        >
                           Request
                         </TH>
-                        <TH scope="col" className="px-4 py-3 text-left" style={{ ...label, fontWeight: 500 }}>
+                        <TH
+                          scope="col"
+                          className="px-4 py-3 text-left"
+                          style={{ ...label, fontWeight: 500 }}
+                        >
                           Sent
                         </TH>
-                        <TH scope="col" className="px-4 py-3 text-left" style={{ ...label, fontWeight: 500 }}>
+                        <TH
+                          scope="col"
+                          className="px-4 py-3 text-left"
+                          style={{ ...label, fontWeight: 500 }}
+                        >
                           Status
                         </TH>
-                        <TH scope="col" className="px-4 py-3 text-right" style={{ ...label, fontWeight: 500 }}>
+                        <TH
+                          scope="col"
+                          className="px-4 py-3 text-right"
+                          style={{ ...label, fontWeight: 500 }}
+                        >
                           Reply
                         </TH>
                       </TR>
@@ -952,7 +1301,12 @@ export default function Screen() {
                         const open = openReq === r.id;
                         return (
                           <React.Fragment key={r.id}>
-                            <TR className={"vel-row " + (r.isNew ? "vel-enter" : "")} style={{ borderBottom: open ? "none" : "1px solid rgba(255,255,255,0.11)" }}>
+                            <TR
+                              className={"vel-row " + (r.isNew ? "vel-enter" : "")}
+                              style={{
+                                borderBottom: open ? "none" : "1px solid rgba(255,255,255,0.11)",
+                              }}
+                            >
                               <TD className="px-4 py-4" style={{ color: ink }}>
                                 <span className="font-medium">{r.person}</span>
                                 <span className="block text-xs" style={{ color: muted }}>
@@ -966,7 +1320,14 @@ export default function Screen() {
                                 {r.sent}
                               </TD>
                               <TD className="px-4 py-4">
-                                <span className="inline-flex items-center gap-2 px-2 py-1 text-[12px]" style={{ border: "1px solid rgba(255,255,255,0.14)", borderRadius: brand.radius, color: chip.color }}>
+                                <span
+                                  className="inline-flex items-center gap-2 px-2 py-1 text-[12px]"
+                                  style={{
+                                    border: "1px solid rgba(255,255,255,0.14)",
+                                    borderRadius: brand.radius,
+                                    color: chip.color,
+                                  }}
+                                >
                                   <chip.Icon className="h-3.5 w-3.5" aria-hidden="true" />
                                   {chip.text}
                                 </span>
@@ -983,7 +1344,14 @@ export default function Screen() {
                                   >
                                     <span className="inline-flex items-center gap-2">
                                       {open ? "Hide reply" : "Read reply"}
-                                      {open ? <Icons.ChevronDown className="h-4 w-4" aria-hidden="true" /> : <Icons.ChevronRight className="h-4 w-4" aria-hidden="true" />}
+                                      {open ? (
+                                        <Icons.ChevronDown className="h-4 w-4" aria-hidden="true" />
+                                      ) : (
+                                        <Icons.ChevronRight
+                                          className="h-4 w-4"
+                                          aria-hidden="true"
+                                        />
+                                      )}
                                     </span>
                                   </button>
                                 ) : (
@@ -997,18 +1365,44 @@ export default function Screen() {
                             {open ? (
                               <TR style={{ borderBottom: "1px solid rgba(255,255,255,0.11)" }}>
                                 <TD colSpan={5} className="px-4 pb-6 pt-0">
-                                  <div id={"reply-" + r.id} className="vel-fade px-5 py-5" style={{ border: "1px solid rgba(255,255,255,0.11)", borderRadius: brand.radius, backgroundColor: "rgba(255,255,255,0.03)" }}>
+                                  <div
+                                    id={"reply-" + r.id}
+                                    className="vel-fade px-5 py-5"
+                                    style={{
+                                      border: "1px solid rgba(255,255,255,0.11)",
+                                      borderRadius: brand.radius,
+                                      backgroundColor: "rgba(255,255,255,0.03)",
+                                    }}
+                                  >
                                     {r.restricted ? (
                                       <div className="flex items-start gap-3">
-                                        <Icons.AlertCircle className="mt-0.5 h-4 w-4 shrink-0" aria-hidden="true" style={{ color: "var(--warn)" }} />
+                                        <Icons.AlertCircle
+                                          className="mt-0.5 h-4 w-4 shrink-0"
+                                          aria-hidden="true"
+                                          style={{ color: "var(--warn)" }}
+                                        />
                                         <div className="max-w-[68ch]">
-                                          <h3 className="m-0 text-[14px] font-semibold" style={{ color: "var(--warn)" }}>
+                                          <h3
+                                            className="m-0 text-[14px] font-semibold"
+                                            style={{ color: "var(--warn)" }}
+                                          >
                                             Restricted — you can't open this reply
                                           </h3>
-                                          <p className="mt-2 mb-0 text-[14px] leading-relaxed" style={{ color: ink, opacity: 0.9 }}>
-                                            {r.person} marked the answer confidential to your manager. <strong>Ines Marchetti</strong> can read it and will summarise it in your next 1:1. If you need it sooner, ask Ines, or Hélène Dupont in People Ops.
+                                          <p
+                                            className="mt-2 mb-0 text-[14px] leading-relaxed"
+                                            style={{ color: ink, opacity: 0.9 }}
+                                          >
+                                            {r.person} marked the answer confidential to your
+                                            manager. <strong>Ines Marchetti</strong> can read it and
+                                            will summarise it in your next 1:1. If you need it
+                                            sooner, ask Ines, or Hélène Dupont in People Ops.
                                           </p>
-                                          <button type="button" className="vel-btn mt-4" style={ghostBtn} onClick={() => navigate("my-profile")}>
+                                          <button
+                                            type="button"
+                                            className="vel-btn mt-4"
+                                            style={ghostBtn}
+                                            onClick={() => navigate("my-profile")}
+                                          >
                                             See who your manager is
                                           </button>
                                         </div>
@@ -1016,9 +1410,15 @@ export default function Screen() {
                                     ) : (
                                       <div>
                                         <p className="m-0 text-xs" style={{ ...label }}>
-                                          {r.person} · <span style={{ fontVariantNumeric: "tabular-nums" }}>{r.replyDate}</span>
+                                          {r.person} ·{" "}
+                                          <span style={{ fontVariantNumeric: "tabular-nums" }}>
+                                            {r.replyDate}
+                                          </span>
                                         </p>
-                                        <p className="mt-3 mb-0 max-w-[68ch] text-[15px] leading-[1.65]" style={{ color: ink, opacity: 0.92 }}>
+                                        <p
+                                          className="mt-3 mb-0 max-w-[68ch] text-[15px] leading-[1.65]"
+                                          style={{ color: ink, opacity: 0.92 }}
+                                        >
                                           {r.reply}
                                         </p>
                                       </div>
@@ -1030,7 +1430,11 @@ export default function Screen() {
 
                             {r.status === "declined" && r.note ? (
                               <TR style={{ borderBottom: "1px solid rgba(255,255,255,0.11)" }}>
-                                <TD colSpan={5} className="px-4 pb-4 pt-0 text-[13px]" style={{ color: muted }}>
+                                <TD
+                                  colSpan={5}
+                                  className="px-4 pb-4 pt-0 text-[13px]"
+                                  style={{ color: muted }}
+                                >
                                   {r.note}
                                 </TD>
                               </TR>
@@ -1046,8 +1450,20 @@ export default function Screen() {
           </div>
 
           <p className="mt-6 mb-0 max-w-[70ch] text-xs leading-relaxed" style={{ color: muted }}>
-            Feedback is visible to the author, the recipient and the recipient's manager. Everything else in the directory stays closed to you.{" "}
-            <button type="button" className="underline underline-offset-4" style={{ color: accent, background: "none", border: "none", padding: 0, cursor: "pointer" }} onClick={() => navigate("dashboard")}>
+            Feedback is visible to the author, the recipient and the recipient's manager. Everything
+            else in the directory stays closed to you.{" "}
+            <button
+              type="button"
+              className="underline underline-offset-4"
+              style={{
+                color: accent,
+                background: "none",
+                border: "none",
+                padding: 0,
+                cursor: "pointer",
+              }}
+              onClick={() => navigate("dashboard")}
+            >
               Back to my dashboard
             </button>
           </p>
