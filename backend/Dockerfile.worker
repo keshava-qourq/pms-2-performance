@@ -1,0 +1,21 @@
+FROM python:3.12-slim
+
+WORKDIR /app
+ENV PYTHONDONTWRITEBYTECODE=1 PYTHONUNBUFFERED=1
+
+COPY requirements.txt ./
+RUN pip install --no-cache-dir -r requirements.txt
+
+COPY app ./app
+
+# Run as an unprivileged user, same reasoning as backend/Dockerfile: the
+# process never needs root.
+RUN useradd --create-home --uid 10001 appuser
+USER appuser
+
+# The worker component (architecture: "Background Worker"). Same image and
+# dependencies as the API -- it shares the models, config, storage, cache and
+# queue modules -- but its entrypoint is the arq worker loop, not uvicorn. It
+# serves no HTTP port, so there is no HEALTHCHECK here; arq logs each job it
+# runs, which is what a process supervisor should watch instead.
+CMD ["arq", "app.worker.WorkerSettings"]
