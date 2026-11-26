@@ -77,3 +77,37 @@ def build_me_response(db: Session, employee: Employee) -> MeResponse:
         updated_at=employee.updated_at,
         manager=get_manager_summary(db, employee),
     )
+
+
+def direct_reports(db: Session, manager_id: str) -> list[Employee]:
+    """Every employee currently reporting to ``manager_id``, by name.
+
+    This is the live reporting hierarchy: it is never stored separately, so
+    assigning or changing an employee's ``manager_id`` (PATCH
+    /admin/employees/{id}) is immediately reflected for both the employee's
+    previous manager (who stops appearing here) and their new one (who starts
+    appearing here) without any further bookkeeping (AC-010, AC-011).
+    """
+    return (
+        db.query(Employee).filter(Employee.manager_id == manager_id).order_by(Employee.name).all()
+    )
+
+
+def creates_manager_cycle(db: Session, employee_id: str, candidate_manager_id: str) -> bool:
+    """True if ``employee_id`` is an ancestor of ``candidate_manager_id``.
+
+    Walks up the candidate's existing chain of managers; reaching
+    ``employee_id`` means assigning ``candidate_manager_id`` as their manager
+    would close a reporting loop (AC-011). A dangling/garbled chain simply
+    stops the walk rather than looping forever.
+    """
+    visited: set[str] = set()
+    walker = db.get(Employee, candidate_manager_id)
+    while walker is not None:
+        if walker.id == employee_id:
+            return True
+        if walker.id in visited:
+            break
+        visited.add(walker.id)
+        walker = db.get(Employee, walker.manager_id) if walker.manager_id else None
+    return False

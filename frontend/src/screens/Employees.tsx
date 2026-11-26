@@ -310,6 +310,11 @@ export default function Screen() {
     return found ? found.name : id;
   };
 
+  const directReportsFor = (id: string): string => {
+    const reports = items.filter((e) => e.manager_id === id).map((e) => e.name);
+    return reports.length > 0 ? reports.join(", ") : "—";
+  };
+
   const handleCreated = (created: Employee) => {
     setItems((prev) => [created, ...prev]);
     setTotal((t) => t + 1);
@@ -422,6 +427,7 @@ export default function Screen() {
                     <TH scope="col">Email</TH>
                     <TH scope="col">Role</TH>
                     <TH scope="col">Manager</TH>
+                    <TH scope="col">Direct reports</TH>
                     <TH scope="col">Status</TH>
                     <TH scope="col">
                       <span className="sr-only">Actions</span>
@@ -435,6 +441,7 @@ export default function Screen() {
                       <TD>{e.email}</TD>
                       <TD>{roleLabel(e.role)}</TD>
                       <TD>{managerNameFor(e.manager_id)}</TD>
+                      <TD data-testid={`direct-reports-${e.id}`}>{directReportsFor(e.id)}</TD>
                       <TD>{e.status}</TD>
                       <TD>
                         <Button

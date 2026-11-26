@@ -1,6 +1,8 @@
 """Employee-scoped resources and the HR-Admin employee directory.
 
 - GET/POST/PATCH /admin/employees* is hr_admin-only (AC-007, AC-008, AC-009).
+- PATCH /admin/employees/{id} also assigns/reassigns the reporting hierarchy
+  (AC-010, AC-011).
 - /employees/{id}/goals uses manager scoping to self + direct reports (AC-005).
 """
 
@@ -28,6 +30,7 @@ from app.schemas import (
     StubResponse,
 )
 from app.security import hash_password
+from app.services import creates_manager_cycle
 
 router = APIRouter(tags=["employees"])
 
@@ -108,21 +111,6 @@ def create_employee(
     return EmployeeOut.model_validate(employee)
 
 
-def _creates_cycle(db: Session, employee_id: str, new_manager_id: str) -> bool:
-    """True if employee_id is an ancestor of new_manager_id, i.e. assigning
-    new_manager_id as employee_id's manager would close a reporting loop."""
-    visited: set[str] = set()
-    walker = db.get(Employee, new_manager_id)
-    while walker is not None:
-        if walker.id == employee_id:
-            return True
-        if walker.id in visited:
-            break
-        visited.add(walker.id)
-        walker = db.get(Employee, walker.manager_id) if walker.manager_id else None
-    return False
-
-
 @router.patch(
     "/admin/employees/{id}",
     response_model=EmployeeOut,
@@ -134,6 +122,15 @@ def update_employee(
     current: Employee = Depends(require_hr_admin),  # noqa: B008
     db: Session = Depends(get_db),  # noqa: B008
 ) -> EmployeeOut:
+    """Edit a profile or (re)assign its manager (AC-008, AC-010, AC-011).
+
+    Assigning ``manager_id`` -- whether the employee had none before or is
+    being moved from one manager to another -- is a single update to this
+    row: the previous manager's direct reports and the new manager's direct
+    reports are both just live queries over ``manager_id`` (see
+    ``app.services.direct_reports``), so both sides of the hierarchy reflect
+    the change with nothing further to update.
+    """
     employee = db.get(Employee, id)
     if employee is None:
         raise EMPLOYEE_NOT_FOUND.raise_as_http()
@@ -149,7 +146,7 @@ def update_employee(
             raise EMPLOYEE_MANAGER_SELF.raise_as_http()
         if db.get(Employee, new_manager_id) is None:
             raise EMPLOYEE_MANAGER_NOT_FOUND.raise_as_http()
-        if _creates_cycle(db, id, new_manager_id):
+        if creates_manager_cycle(db, id, new_manager_id):
             raise EMPLOYEE_MANAGER_CYCLE.raise_as_http()
 
     for field, value in data.items():
