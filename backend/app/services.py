@@ -9,8 +9,8 @@ import os
 
 from sqlalchemy.orm import Session
 
-from app.models import Employee
-from app.schemas import ManagerSummary, MeResponse
+from app.models import Employee, Goal, KeyResult
+from app.schemas import GoalCreate, ManagerSummary, MeResponse
 from app.security import verify_password
 
 SERVICES = {
@@ -77,6 +77,20 @@ def build_me_response(db: Session, employee: Employee) -> MeResponse:
         updated_at=employee.updated_at,
         manager=get_manager_summary(db, employee),
     )
+
+
+def create_goal(db: Session, employee: Employee, body: GoalCreate) -> Goal:
+    """Persist a new objective with its key results for ``employee``
+    (AC-016). A missing title or an empty key-results list never reaches
+    here: ``GoalCreate`` already rejects both with a 422 (AC-017)."""
+    goal = Goal(employee_id=employee.id, title=body.title, description=body.description)
+    goal.key_results = [
+        KeyResult(title=kr.title, target_value=kr.target_value) for kr in body.key_results
+    ]
+    db.add(goal)
+    db.commit()
+    db.refresh(goal)
+    return goal
 
 
 def direct_reports(db: Session, manager_id: str) -> list[Employee]:

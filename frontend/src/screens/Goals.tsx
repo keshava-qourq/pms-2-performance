@@ -6,6 +6,7 @@ import * as UI from "@/lib/ui";
 import { Icons } from "@/lib/icons";
 import { brand } from "@/lib/brand";
 import { useNavigate } from "@/lib/navigate";
+import { apiFetch, ApiError } from "@/lib/api";
 
 const {
   Button,
@@ -614,8 +615,8 @@ const GoalCard = ({
   const [note, setNote] = React.useState("");
   const [noteError, setNoteError] = React.useState("");
   const progress = goalProgress(goal);
-  const st = STATUS_META[goal.status];
-  const ap = APPROVAL_META[goal.approval_status];
+  const st = STATUS_META[goal.status] || STATUS_META.active;
+  const ap = APPROVAL_META[goal.approval_status] || APPROVAL_META.draft;
   const panelId = `kr-panel-${goal.id}`;
   const dimmed = goal.status === "closed";
 
@@ -889,7 +890,7 @@ const GoalCard = ({
                                     : "muted"
                               }
                             >
-                              {KR_STATUS[kr.status]}
+                              {KR_STATUS[kr.status] ?? KR_STATUS.not_started}
                             </Chip>
                           )}
                         </TD>
@@ -1092,9 +1093,9 @@ export default function Screen() {
     krs: [{ key: "new-1", title: "", target_value: "" }],
   });
   const [formErrors, setFormErrors] = React.useState([]);
+  const [saving, setSaving] = React.useState(false);
   const [sync, setSync] = React.useState("stale");
   const syncTimer = React.useRef(null);
-  const seq = React.useRef(59);
 
   React.useEffect(() => {
     setLoading(true);
@@ -1237,54 +1238,78 @@ export default function Screen() {
       krs: f.krs.map((k) => (k.key === key ? { ...k, [field]: value } : k)),
     }));
 
-  const saveObjective = (event) => {
+  const saveObjective = async (event) => {
     event.preventDefault();
     const errs = [];
     if (!form.title.trim()) errs.push("Give the objective a title.");
-    const usable = form.krs.filter((k) => k.title.trim() && String(k.target_value).trim() !== "");
-    if (!usable.length) errs.push("Add at least one key result with a title and a target value.");
+    const usable = form.krs.filter((k) => k.title.trim());
+    if (!usable.length) errs.push("Add at least one key result with a title.");
     if (errs.length) {
       setFormErrors(errs);
       return;
     }
-    seq.current += 1;
-    const n = seq.current;
-    const id = `g-0${n}`;
-    const newGoal = {
-      id,
-      ref: `OBJ-26-0${n}`,
-      employee_id: ME.id,
-      title: form.title.trim(),
-      description: form.description.trim() || "No context added yet.",
-      status: "active",
-      approval_status: "draft",
-      created_at: "2026-10-30",
-      progress: 0,
-      key_results: usable.map((k, i) => ({
-        id: `kr-${n}${i + 1}`,
-        goal_id: id,
-        title: k.title.trim(),
-        target_value: Number(k.target_value),
-        current_value: 0,
-        status: "not_started",
-      })),
-    };
-    setGoals((prev) => ({ ...prev, [ME.id]: [newGoal, ...prev[ME.id]] }));
-    setForm({
-      title: "",
-      description: "",
-      krs: [{ key: `new-${Date.now()}`, title: "", target_value: "" }],
-    });
     setFormErrors([]);
-    setComposerOpen(false);
-    setExpanded((e) => ({ ...e, [id]: true }));
-    setTab("mine");
-    setStatusFilter("all");
-    setQuery("");
-    setBanner({
-      tone: "accent",
-      text: `${newGoal.ref} saved as a draft. Submit it to ${ME.manager} when the key results are settled.`,
-    });
+    setSaving(true);
+    try {
+      const created = await apiFetch("/goals", {
+        method: "POST",
+        body: JSON.stringify({
+          title: form.title.trim(),
+          description: form.description.trim() || null,
+          key_results: usable.map((k) => ({
+            title: k.title.trim(),
+            target_value: String(k.target_value).trim() === "" ? null : Number(k.target_value),
+          })),
+        }),
+      });
+      const id = created.id;
+      const newGoal = {
+        ...created,
+        ref:
+          created.ref ||
+          `OBJ-${String(id || "")
+            .slice(0, 8)
+            .toUpperCase()}`,
+        employee_id: created.employee_id || ME.id,
+        status: STATUS_META[created.status] ? created.status : "active",
+        approval_status: APPROVAL_META[created.approval_status] ? created.approval_status : "draft",
+        created_at:
+          typeof created.created_at === "string"
+            ? created.created_at.slice(0, 10)
+            : created.created_at,
+        key_results: (created.key_results || []).map((kr) => ({
+          ...kr,
+          status: KR_STATUS[kr.status] ? kr.status : "not_started",
+        })),
+      };
+      setGoals((prev) => ({ ...prev, [ME.id]: [newGoal, ...(prev[ME.id] || [])] }));
+      setForm({
+        title: "",
+        description: "",
+        krs: [{ key: `new-${Date.now()}`, title: "", target_value: "" }],
+      });
+      setFormErrors([]);
+      setComposerOpen(false);
+      setExpanded((e) => ({ ...e, [id]: true }));
+      setTab("mine");
+      setStatusFilter("all");
+      setQuery("");
+      setBanner({
+        tone: "accent",
+        text: `${newGoal.ref} saved and listed among your goals.`,
+      });
+    } catch (err) {
+      if (err instanceof ApiError && Array.isArray(err.detail)) {
+        const messages = err.detail.map((item) => item?.msg).filter(Boolean);
+        setFormErrors(messages.length ? messages : ["Something went wrong. Try again."]);
+      } else if (err instanceof ApiError && typeof err.detail === "string") {
+        setFormErrors([err.detail]);
+      } else {
+        setFormErrors([err instanceof Error ? err.message : "Something went wrong. Try again."]);
+      }
+    } finally {
+      setSaving(false);
+    }
   };
 
   const openLookup = (event) => {
@@ -1806,13 +1831,15 @@ export default function Screen() {
                   <CardFooter className="flex flex-wrap gap-3 px-6 pb-6 pt-4">
                     <Button
                       type="submit"
+                      disabled={saving}
                       className="h-12 rounded-[5px] px-6 text-[14px] font-medium"
                       style={{ backgroundColor: T.accent, color: T.bg, border: "none" }}
                     >
-                      Save objective
+                      {saving ? "Saving…" : "Save objective"}
                     </Button>
                     <Button
                       type="button"
+                      disabled={saving}
                       onClick={() => {
                         setComposerOpen(false);
                         setFormErrors([]);

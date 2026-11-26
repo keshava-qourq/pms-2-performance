@@ -7,7 +7,7 @@ generated route returns until it has been implemented.
 from datetime import datetime
 from typing import Literal
 
-from pydantic import BaseModel, ConfigDict, EmailStr
+from pydantic import BaseModel, ConfigDict, EmailStr, Field
 
 
 class LoginRequest(BaseModel):
@@ -92,6 +92,72 @@ class EmployeeListResponse(BaseModel):
     total: int
     page: int
     page_size: int
+
+
+class KeyResultCreate(BaseModel):
+    """One measurable key result of a new objective (AC-016)."""
+
+    model_config = ConfigDict(extra="forbid")
+
+    title: str = Field(min_length=1)
+    target_value: float | None = None
+
+
+class GoalCreate(BaseModel):
+    """AC-016: a title, an optional description and one or more key results.
+    AC-017: a missing title, or an empty ``key_results`` list, is rejected
+    with a 422 naming the field(s) that are required."""
+
+    model_config = ConfigDict(extra="forbid")
+
+    title: str = Field(min_length=1)
+    description: str | None = None
+    key_results: list[KeyResultCreate] = Field(min_length=1)
+
+
+class KeyResultOut(BaseModel):
+    model_config = ConfigDict(from_attributes=True)
+
+    id: str
+    goal_id: str
+    title: str
+    target_value: float | None
+    current_value: float
+    status: str
+
+
+class GoalOut(BaseModel):
+    model_config = ConfigDict(from_attributes=True)
+
+    id: str
+    employee_id: str
+    title: str
+    description: str | None
+    status: str
+    progress: float
+    approval_status: str
+    created_at: datetime
+    key_results: list[KeyResultOut]
+
+
+class KeyResultUpdate(BaseModel):
+    """Scaffolded for a later story (key result progress updates); shape
+    matches the approved architecture. Not yet backed by any logic."""
+
+    model_config = ConfigDict(extra="forbid")
+
+    current_value: float | None = None
+    status: str | None = None
+
+
+class GoalReviewRequest(BaseModel):
+    """Scaffolded for a later story (manager review of a submitted goal);
+    shape matches the approved architecture. Not yet backed by any logic."""
+
+    model_config = ConfigDict(extra="forbid")
+
+    decision: str
+    comment: str | None = None
 
 
 class StubResponse(BaseModel):

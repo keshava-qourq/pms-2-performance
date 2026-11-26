@@ -7,7 +7,7 @@ module declares the mapped classes that migrations and the ORM both work from.
 import uuid
 from datetime import datetime
 
-from sqlalchemy import DateTime, ForeignKey, Index, String, func
+from sqlalchemy import DateTime, Float, ForeignKey, Index, String, func
 from sqlalchemy.orm import Mapped, mapped_column, relationship
 
 from app.database import Base
@@ -52,4 +52,50 @@ class Employee(Base):
     )
 
 
-__all__ = ["Base", "Employee"]
+class Goal(Base):
+    """An employee's objective: a title, an optional description and the key
+    results that make it measurable (AC-016, AC-017).
+
+    ``status`` tracks the goal's own lifecycle (active/at_risk/completed/
+    closed); ``approval_status`` tracks the separate submit/review workflow
+    (draft/pending/approved/changes) scaffolded by later stories. A goal is
+    created as an active draft: visible among the employee's goals
+    immediately (AC-016), not yet submitted for manager review.
+    """
+
+    __tablename__ = "goals"
+    __table_args__ = (Index("ix_goals_employee_id", "employee_id"),)
+
+    id: Mapped[str] = mapped_column(String(36), primary_key=True, default=lambda: str(uuid.uuid4()))
+    employee_id: Mapped[str] = mapped_column(String(36), ForeignKey("employees.id"), nullable=False)
+    title: Mapped[str] = mapped_column(String(255), nullable=False)
+    description: Mapped[str | None] = mapped_column(String, nullable=True)
+    status: Mapped[str] = mapped_column(String(20), nullable=False, default="active")
+    progress: Mapped[float] = mapped_column(Float, nullable=False, default=0)
+    approval_status: Mapped[str] = mapped_column(String(20), nullable=False, default="draft")
+    created_at: Mapped[datetime] = mapped_column(
+        DateTime(timezone=True), nullable=False, server_default=func.now()
+    )
+
+    key_results: Mapped[list["KeyResult"]] = relationship(
+        "KeyResult", back_populates="goal", cascade="all, delete-orphan", order_by="KeyResult.id"
+    )
+
+
+class KeyResult(Base):
+    """One measurable key result belonging to a single goal (AC-016)."""
+
+    __tablename__ = "key_results"
+    __table_args__ = (Index("ix_key_results_goal_id", "goal_id"),)
+
+    id: Mapped[str] = mapped_column(String(36), primary_key=True, default=lambda: str(uuid.uuid4()))
+    goal_id: Mapped[str] = mapped_column(String(36), ForeignKey("goals.id"), nullable=False)
+    title: Mapped[str] = mapped_column(String(255), nullable=False)
+    target_value: Mapped[float | None] = mapped_column(Float, nullable=True)
+    current_value: Mapped[float] = mapped_column(Float, nullable=False, default=0)
+    status: Mapped[str] = mapped_column(String(20), nullable=False, default="not_started")
+
+    goal: Mapped["Goal"] = relationship("Goal", back_populates="key_results")
+
+
+__all__ = ["Base", "Employee", "Goal", "KeyResult"]
