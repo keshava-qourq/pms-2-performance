@@ -17,7 +17,7 @@ function renderLogin() {
       <AuthProvider>
         <Login />
       </AuthProvider>
-    </MemoryRouter>
+    </MemoryRouter>,
   );
 }
 
@@ -31,7 +31,7 @@ describe("Login", () => {
     renderLogin();
     expect(screen.getByText(/single sign-on arrives in a later release/i)).toBeInTheDocument();
     expect(
-      screen.queryByRole("button", { name: /sso|single sign-on|google|microsoft/i })
+      screen.queryByRole("button", { name: /sso|single sign-on|google|microsoft/i }),
     ).toBeNull();
   });
 
@@ -42,7 +42,9 @@ describe("Login", () => {
       user: { id: "u-1", name: "Rosa Lindqvist", email: "rosa@example.com", role: "manager" },
     });
     renderLogin();
-    fireEvent.change(screen.getByLabelText(/work email/i), { target: { value: "rosa@example.com" } });
+    fireEvent.change(screen.getByLabelText(/work email/i), {
+      target: { value: "rosa@example.com" },
+    });
     fireEvent.change(screen.getByLabelText(/password/i), { target: { value: "secret" } });
     fireEvent.click(screen.getByRole("button", { name: /sign in/i }));
 
@@ -52,7 +54,7 @@ describe("Login", () => {
         expect.objectContaining({
           method: "POST",
           body: JSON.stringify({ email: "rosa@example.com", password: "secret" }),
-        })
+        }),
       );
     });
     await waitFor(() => expect(window.localStorage.getItem("pms_auth_token")).toBe("tok-123"));
@@ -66,7 +68,9 @@ describe("Login", () => {
     const error = new Error("Invalid email or password");
     vi.mocked(apiFetch).mockRejectedValueOnce(error);
     renderLogin();
-    fireEvent.change(screen.getByLabelText(/work email/i), { target: { value: "nobody@example.com" } });
+    fireEvent.change(screen.getByLabelText(/work email/i), {
+      target: { value: "nobody@example.com" },
+    });
     fireEvent.change(screen.getByLabelText(/password/i), { target: { value: "wrong" } });
     fireEvent.click(screen.getByRole("button", { name: /sign in/i }));
 

@@ -7,13 +7,7 @@ import { Button } from "@/lib/ui";
  * through apiFetch -> onForbidden) and for a route guard redirect (via the message prop). Never
  * build a second denial screen per feature -- route every 403 and every blocked route here.
  */
-export function AccessDenied({
-  message,
-  onDismiss,
-}: {
-  message?: string;
-  onDismiss?: () => void;
-}) {
+export function AccessDenied({ message, onDismiss }: { message?: string; onDismiss?: () => void }) {
   return (
     <div
       role="alert"

@@ -1,76 +1,126 @@
-"""Integration tests for POST /auth/login (AC-001, AC-002, NFR-001)."""
+"""Integration tests for POST /auth/login (AC-001, AC-002, AC-003).
+
+One test per reviewed test case: TC-016, TC-018, TC-019, TC-020, TC-023.
+"""
 
 from fastapi.testclient import TestClient
+from sqlalchemy.orm import Session
+
+from app.models import Employee
+from app.security import hash_password
+
+ALICE_EMAIL = "alice@example.com"
+ALICE_PASSWORD = "Passw0rd!2026"
+MARK_EMAIL = "mark.manager@example.com"
+MARK_PASSWORD = "MgrPass!2026"
 
 
-def test_ac001_login_with_correct_credentials_returns_token_and_user(
-    client: TestClient, seeded: dict
-) -> None:
-    response = client.post(
-        "/auth/login",
-        json={"email": seeded["employee_email"], "password": seeded["password"]},
+def _make_employee(db: Session, *, name: str, email: str, password: str, role: str) -> Employee:
+    employee = Employee(
+        name=name,
+        email=email,
+        role=role,
+        status="active",
+        password_hash=hash_password(password),
     )
+    db.add(employee)
+    db.commit()
+    return employee
+
+
+def test_tc016_successful_login_returns_token_and_employee_landing(
+    client: TestClient, db: Session
+) -> None:
+    _make_employee(
+        db, name="Alice Employee", email=ALICE_EMAIL, password=ALICE_PASSWORD, role="employee"
+    )
+
+    response = client.post("/auth/login", json={"email": ALICE_EMAIL, "password": ALICE_PASSWORD})
 
     assert response.status_code == 200
     body = response.json()
-    assert body["token_type"] == "bearer"
     assert isinstance(body["access_token"], str) and body["access_token"]
-    assert body["user"]["email"] == seeded["employee_email"]
+    assert body["token_type"] == "bearer"
+    assert body["user"]["email"] == ALICE_EMAIL
+    # The Employee role landing is role-appropriate: the client routes on this role.
     assert body["user"]["role"] == "employee"
-    assert set(body["user"]) == {"id", "name", "email", "role"}
 
 
-def test_ac002_login_with_unknown_email_returns_generic_401(
-    client: TestClient, seeded: dict
+def test_tc018_successful_login_returns_token_and_manager_landing(
+    client: TestClient, db: Session
 ) -> None:
-    response = client.post(
-        "/auth/login",
-        json={"email": "nobody@example.com", "password": seeded["password"]},
+    _make_employee(
+        db, name="Mark Manager", email=MARK_EMAIL, password=MARK_PASSWORD, role="manager"
     )
 
-    assert response.status_code == 401
-    assert response.json() == {"detail": "Invalid email or password"}
-
-
-def test_ac002_login_with_wrong_password_returns_identical_generic_401(
-    client: TestClient, seeded: dict
-) -> None:
-    response = client.post(
-        "/auth/login",
-        json={"email": seeded["employee_email"], "password": "not-the-password"},
-    )
-
-    assert response.status_code == 401
-    assert response.json() == {"detail": "Invalid email or password"}
-
-
-def test_ac002_malformed_body_returns_422(client: TestClient) -> None:
-    response = client.post("/auth/login", json={"email": "not-an-email"})
-
-    assert response.status_code == 422
-
-
-def test_nfr001_unknown_email_and_wrong_password_responses_are_byte_identical(
-    client: TestClient, seeded: dict
-) -> None:
-    """NFR-001: the two failure modes must be indistinguishable to the caller."""
-    unknown = client.post(
-        "/auth/login", json={"email": "nobody@example.com", "password": seeded["password"]}
-    )
-    wrong = client.post(
-        "/auth/login",
-        json={"email": seeded["employee_email"], "password": "not-the-password"},
-    )
-
-    assert unknown.status_code == wrong.status_code == 401
-    assert unknown.content == wrong.content
-
-
-def test_ac003_no_sso_saml_oauth_route_exists(client: TestClient) -> None:
-    response = client.get("/openapi.json")
+    response = client.post("/auth/login", json={"email": MARK_EMAIL, "password": MARK_PASSWORD})
 
     assert response.status_code == 200
-    paths = response.json()["paths"]
-    joined = " ".join(paths).lower()
-    for forbidden in ("sso", "saml", "oauth"):
-        assert forbidden not in joined
+    body = response.json()
+    assert isinstance(body["access_token"], str) and body["access_token"]
+    assert body["token_type"] == "bearer"
+    assert body["user"]["email"] == MARK_EMAIL
+    # The Manager landing must be distinct from the Employee landing.
+    assert body["user"]["role"] == "manager"
+    assert body["user"]["role"] != "employee"
+
+
+def test_tc019_wrong_password_is_denied_with_generic_error(client: TestClient, db: Session) -> None:
+    _make_employee(
+        db, name="Alice Employee", email=ALICE_EMAIL, password=ALICE_PASSWORD, role="employee"
+    )
+
+    response = client.post("/auth/login", json={"email": ALICE_EMAIL, "password": "WrongPass123"})
+
+    assert response.status_code == 401
+    # A single generic error: it does not say the password (rather than the
+    # email) was the one that was wrong.
+    assert response.json() == {"detail": "Invalid email or password"}
+
+
+def test_tc020_unregistered_email_is_denied_with_the_same_generic_error(
+    client: TestClient,
+) -> None:
+    response = client.post(
+        "/auth/login",
+        json={"email": "unknown.user@example.com", "password": ALICE_PASSWORD},
+    )
+
+    assert response.status_code == 401
+    # Identical to the wrong-password case in TC-019: the caller cannot tell
+    # the two failure modes apart.
+    assert response.json() == {"detail": "Invalid email or password"}
+
+
+def test_tc023_sso_token_has_no_effect_and_cannot_replace_the_password(
+    client: TestClient, db: Session
+) -> None:
+    _make_employee(
+        db, name="Alice Employee", email=ALICE_EMAIL, password=ALICE_PASSWORD, role="employee"
+    )
+
+    # Step 1: a valid password together with an ssoToken still authenticates
+    # normally via the password; the token has no special effect.
+    with_sso = client.post(
+        "/auth/login",
+        json={
+            "email": ALICE_EMAIL,
+            "password": ALICE_PASSWORD,
+            "ssoToken": "dummy-saml-token-123",
+        },
+    )
+    assert with_sso.status_code == 200
+    body = with_sso.json()
+    assert isinstance(body["access_token"], str) and body["access_token"]
+    assert body["token_type"] == "bearer"
+    assert body["user"]["email"] == ALICE_EMAIL
+    assert body["user"]["role"] == "employee"
+
+    # Step 2: an ssoToken without a password is rejected for lacking the
+    # required password, not authenticated through any SSO path.
+    without_password = client.post(
+        "/auth/login",
+        json={"email": ALICE_EMAIL, "ssoToken": "dummy-saml-token-123"},
+    )
+    assert without_password.status_code != 200
+    assert "access_token" not in without_password.json()

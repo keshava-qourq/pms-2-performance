@@ -54,12 +54,20 @@ export default function Screen() {
     >
       <main
         className="w-full max-w-md p-10"
-        style={{ backgroundColor: "rgba(255,255,255,0.04)", border: HAIRLINE, borderRadius: brand.radius }}
+        style={{
+          backgroundColor: "rgba(255,255,255,0.04)",
+          border: HAIRLINE,
+          borderRadius: brand.radius,
+        }}
       >
         <h1 className="text-3xl" style={{ fontFamily: brand.fontHeading }}>
           {PRODUCT}
         </h1>
-        <div aria-hidden className="mt-3 h-px w-12" style={{ backgroundColor: brand.accentColor }} />
+        <div
+          aria-hidden
+          className="mt-3 h-px w-12"
+          style={{ backgroundColor: brand.accentColor }}
+        />
         <p className="mt-3 text-xs uppercase" style={label}>
           {SCREEN}
         </p>
@@ -69,11 +77,22 @@ export default function Screen() {
             <div
               role="alert"
               className="flex gap-3 p-3"
-              style={{ border: HAIRLINE, borderRadius: brand.radius, backgroundColor: "rgba(0,0,0,0.25)" }}
+              style={{
+                border: HAIRLINE,
+                borderRadius: brand.radius,
+                backgroundColor: "rgba(0,0,0,0.25)",
+              }}
             >
-              <AlertCircle aria-hidden className="mt-0.5 h-4 w-4 shrink-0" style={{ color: brand.accentColor }} />
+              <AlertCircle
+                aria-hidden
+                className="mt-0.5 h-4 w-4 shrink-0"
+                style={{ color: brand.accentColor }}
+              />
               <div>
-                <p className="text-xs font-bold uppercase" style={{ ...label, color: brand.primaryColor }}>
+                <p
+                  className="text-xs font-bold uppercase"
+                  style={{ ...label, color: brand.primaryColor }}
+                >
                   Sign-in failed
                 </p>
                 <p className="mt-1 text-sm leading-relaxed" style={{ color: brand.neutralColor }}>
