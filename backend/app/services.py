@@ -10,6 +10,7 @@ import os
 from sqlalchemy.orm import Session
 
 from app.models import Employee
+from app.schemas import ManagerSummary, MeResponse
 from app.security import verify_password
 
 SERVICES = {
@@ -45,3 +46,34 @@ def authenticate_employee(db: Session, email: str, password: str) -> Employee | 
     if not verify_password(password, employee.password_hash):
         return None
     return employee
+
+
+def get_manager_summary(db: Session, employee: Employee) -> ManagerSummary | None:
+    """The assigned manager's summary for ``employee``, or ``None`` when the
+    employee has no manager, or its referenced manager row no longer exists
+    (AC-015)."""
+    if not employee.manager_id:
+        return None
+    manager_row = db.get(Employee, employee.manager_id)
+    if manager_row is None:
+        return None
+    return ManagerSummary(
+        id=manager_row.id,
+        name=manager_row.name,
+        email=manager_row.email,
+        role=manager_row.role,
+    )
+
+
+def build_me_response(db: Session, employee: Employee) -> MeResponse:
+    """The caller's own profile plus their assigned manager (AC-015)."""
+    return MeResponse(
+        id=employee.id,
+        name=employee.name,
+        email=employee.email,
+        role=employee.role,
+        status=employee.status,
+        created_at=employee.created_at,
+        updated_at=employee.updated_at,
+        manager=get_manager_summary(db, employee),
+    )
