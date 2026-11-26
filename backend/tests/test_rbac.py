@@ -113,9 +113,7 @@ def test_ac005_nfr002_manager_reads_direct_report_goals(client: TestClient, org:
         assert response.status_code == 200, report_key
 
 
-def test_ac005_nfr002_manager_a_cannot_read_manager_b_report(
-    client: TestClient, org: dict
-) -> None:
+def test_ac005_nfr002_manager_a_cannot_read_manager_b_report(client: TestClient, org: dict) -> None:
     token = org["token_for"](org["manager_a"].email)
     response = client.get(f"/employees/{org['report_b1'].id}/goals", headers=_auth(token))
     assert response.status_code == 403

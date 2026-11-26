@@ -14,7 +14,7 @@ function renderProfile() {
   return render(
     <MemoryRouter>
       <MyProfile />
-    </MemoryRouter>
+    </MemoryRouter>,
   );
 }
 
@@ -44,7 +44,12 @@ describe("MyProfile", () => {
       status: "active",
       created_at: "2023-03-04T00:00:00Z",
       updated_at: "2026-10-22T09:42:00Z",
-      manager: { id: "emp-100", name: "Thomas Lindqvist", email: "thomas@example.com", role: "manager" },
+      manager: {
+        id: "emp-100",
+        name: "Thomas Lindqvist",
+        email: "thomas@example.com",
+        role: "manager",
+      },
     });
     renderProfile();
     expect(await screen.findByRole("heading", { name: "Amara Ndiaye" })).toBeInTheDocument();

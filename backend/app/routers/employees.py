@@ -6,12 +6,19 @@
 
 import secrets
 
-from fastapi import APIRouter, Depends, HTTPException, Query, status
+from fastapi import APIRouter, Depends, Query, status
 from sqlalchemy import or_
 from sqlalchemy.orm import Session
 
 from app.database import get_db
 from app.deps import require_hr_admin, require_self_or_report
+from app.errors import (
+    EMPLOYEE_EMAIL_IN_USE,
+    EMPLOYEE_MANAGER_CYCLE,
+    EMPLOYEE_MANAGER_NOT_FOUND,
+    EMPLOYEE_MANAGER_SELF,
+    EMPLOYEE_NOT_FOUND,
+)
 from app.models import Employee
 from app.schemas import (
     EmployeeCreate,
@@ -24,9 +31,21 @@ from app.security import hash_password
 
 router = APIRouter(tags=["employees"])
 
-_EMPLOYEE_NOT_FOUND = HTTPException(
-    status_code=status.HTTP_404_NOT_FOUND, detail="Employee not found"
-)
+_CREATE_RESPONSES = {
+    **EMPLOYEE_EMAIL_IN_USE.openapi_response(),
+    **EMPLOYEE_MANAGER_NOT_FOUND.openapi_response(),
+}
+
+_UPDATE_RESPONSES = {
+    **EMPLOYEE_NOT_FOUND.openapi_response(),
+    **EMPLOYEE_EMAIL_IN_USE.openapi_response(),
+    status.HTTP_422_UNPROCESSABLE_ENTITY: {
+        "description": (
+            f"{EMPLOYEE_MANAGER_NOT_FOUND.detail} / {EMPLOYEE_MANAGER_SELF.detail} / "
+            f"{EMPLOYEE_MANAGER_CYCLE.detail}"
+        )
+    },
+}
 
 
 def _email_in_use(db: Session, email: str, exclude_id: str | None = None) -> bool:
@@ -56,19 +75,21 @@ def list_employees(
     return EmployeeListResponse(items=items, total=total, page=page, page_size=page_size)
 
 
-@router.post("/admin/employees", response_model=EmployeeOut, status_code=status.HTTP_201_CREATED)
+@router.post(
+    "/admin/employees",
+    response_model=EmployeeOut,
+    status_code=status.HTTP_201_CREATED,
+    responses=_CREATE_RESPONSES,
+)
 def create_employee(
     body: EmployeeCreate,
     current: Employee = Depends(require_hr_admin),  # noqa: B008
     db: Session = Depends(get_db),  # noqa: B008
 ) -> EmployeeOut:
     if body.manager_id is not None and db.get(Employee, body.manager_id) is None:
-        raise HTTPException(
-            status_code=status.HTTP_422_UNPROCESSABLE_ENTITY,
-            detail="manager_id does not exist",
-        )
+        raise EMPLOYEE_MANAGER_NOT_FOUND.raise_as_http()
     if _email_in_use(db, body.email):
-        raise HTTPException(status_code=status.HTTP_409_CONFLICT, detail="Email already in use")
+        raise EMPLOYEE_EMAIL_IN_USE.raise_as_http()
 
     employee = Employee(
         name=body.name,
@@ -102,7 +123,11 @@ def _creates_cycle(db: Session, employee_id: str, new_manager_id: str) -> bool:
     return False
 
 
-@router.patch("/admin/employees/{id}", response_model=EmployeeOut)
+@router.patch(
+    "/admin/employees/{id}",
+    response_model=EmployeeOut,
+    responses=_UPDATE_RESPONSES,
+)
 def update_employee(
     id: str,
     body: EmployeeUpdate,
@@ -111,30 +136,21 @@ def update_employee(
 ) -> EmployeeOut:
     employee = db.get(Employee, id)
     if employee is None:
-        raise _EMPLOYEE_NOT_FOUND
+        raise EMPLOYEE_NOT_FOUND.raise_as_http()
 
     data = body.model_dump(exclude_unset=True)
 
     if "email" in data and _email_in_use(db, data["email"], exclude_id=id):
-        raise HTTPException(status_code=status.HTTP_409_CONFLICT, detail="Email already in use")
+        raise EMPLOYEE_EMAIL_IN_USE.raise_as_http()
 
     if "manager_id" in data and data["manager_id"] is not None:
         new_manager_id = data["manager_id"]
         if new_manager_id == id:
-            raise HTTPException(
-                status_code=status.HTTP_422_UNPROCESSABLE_ENTITY,
-                detail="An employee cannot be their own manager",
-            )
+            raise EMPLOYEE_MANAGER_SELF.raise_as_http()
         if db.get(Employee, new_manager_id) is None:
-            raise HTTPException(
-                status_code=status.HTTP_422_UNPROCESSABLE_ENTITY,
-                detail="manager_id does not exist",
-            )
+            raise EMPLOYEE_MANAGER_NOT_FOUND.raise_as_http()
         if _creates_cycle(db, id, new_manager_id):
-            raise HTTPException(
-                status_code=status.HTTP_422_UNPROCESSABLE_ENTITY,
-                detail="manager_id would create a reporting cycle",
-            )
+            raise EMPLOYEE_MANAGER_CYCLE.raise_as_http()
 
     for field, value in data.items():
         setattr(employee, field, value)

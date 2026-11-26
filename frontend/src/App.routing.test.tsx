@@ -15,7 +15,7 @@ describe("App routing guard", () => {
     render(
       <MemoryRouter initialEntries={["/dashboard"]}>
         <App />
-      </MemoryRouter>
+      </MemoryRouter>,
     );
     expect(screen.getByText(/secure sign-in/i)).toBeInTheDocument();
   });
@@ -24,12 +24,12 @@ describe("App routing guard", () => {
     setAuthToken("tok-1");
     window.localStorage.setItem(
       "pms_auth_user",
-      JSON.stringify({ id: "u-1", name: "Rosa", email: "r@example.com", role: "manager" })
+      JSON.stringify({ id: "u-1", name: "Rosa", email: "r@example.com", role: "manager" }),
     );
     render(
       <MemoryRouter initialEntries={["/dashboard"]}>
         <App />
-      </MemoryRouter>
+      </MemoryRouter>,
     );
     expect(screen.getByRole("link", { name: "My dashboard" })).toBeInTheDocument();
   });
