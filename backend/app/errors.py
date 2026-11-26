@@ -31,3 +31,25 @@ AUTH_INVALID_CREDENTIALS = ErrorCode(
     status_code=status.HTTP_401_UNAUTHORIZED,
     detail="Invalid email or password",
 )
+
+# POST /admin/employees, PATCH /admin/employees/{id} -- AC-007, AC-008.
+EMPLOYEE_NOT_FOUND = ErrorCode(
+    status_code=status.HTTP_404_NOT_FOUND,
+    detail="Employee not found",
+)
+EMPLOYEE_EMAIL_IN_USE = ErrorCode(
+    status_code=status.HTTP_409_CONFLICT,
+    detail="Email already in use",
+)
+EMPLOYEE_MANAGER_NOT_FOUND = ErrorCode(
+    status_code=status.HTTP_422_UNPROCESSABLE_ENTITY,
+    detail="manager_id does not exist",
+)
+EMPLOYEE_MANAGER_SELF = ErrorCode(
+    status_code=status.HTTP_422_UNPROCESSABLE_ENTITY,
+    detail="An employee cannot be their own manager",
+)
+EMPLOYEE_MANAGER_CYCLE = ErrorCode(
+    status_code=status.HTTP_422_UNPROCESSABLE_ENTITY,
+    detail="manager_id would create a reporting cycle",
+)
