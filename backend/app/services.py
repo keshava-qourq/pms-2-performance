@@ -9,8 +9,9 @@ import os
 
 from sqlalchemy.orm import Session
 
-from app.models import Employee, Goal, KeyResult
-from app.schemas import GoalCreate, ManagerSummary, MeResponse
+from app.errors import FEEDBACK_RECIPIENT_NOT_FOUND
+from app.models import Employee, Feedback, Goal, KeyResult
+from app.schemas import FeedbackCreate, GoalCreate, ManagerSummary, MeResponse
 from app.security import verify_password
 
 SERVICES = {
@@ -91,6 +92,27 @@ def create_goal(db: Session, employee: Employee, body: GoalCreate) -> Goal:
     db.commit()
     db.refresh(goal)
     return goal
+
+
+def write_feedback(db: Session, author: Employee, body: FeedbackCreate) -> Feedback:
+    """Persist feedback authored by ``author`` about the chosen colleague
+    (AC-026). Empty content never reaches here: ``FeedbackCreate`` already
+    rejects it with a 422 (AC-027). The recipient must be a real employee;
+    an unknown ``recipient_id`` raises ``FEEDBACK_RECIPIENT_NOT_FOUND``."""
+    recipient = db.get(Employee, body.recipient_id)
+    if recipient is None:
+        raise FEEDBACK_RECIPIENT_NOT_FOUND.raise_as_http()
+
+    feedback = Feedback(
+        author_id=author.id,
+        recipient_id=body.recipient_id,
+        request_id=body.request_id,
+        content=body.content,
+    )
+    db.add(feedback)
+    db.commit()
+    db.refresh(feedback)
+    return feedback
 
 
 def direct_reports(db: Session, manager_id: str) -> list[Employee]:

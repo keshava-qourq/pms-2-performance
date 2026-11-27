@@ -98,4 +98,30 @@ class KeyResult(Base):
     goal: Mapped["Goal"] = relationship("Goal", back_populates="key_results")
 
 
-__all__ = ["Base", "Employee", "Goal", "KeyResult"]
+class Feedback(Base):
+    """Free-text feedback one employee writes about a colleague (AC-026).
+
+    Authored by the signed-in employee and associated with the chosen
+    recipient; ``request_id`` is scaffolded for a later story (answering a
+    feedback request) and stays unset until that story wires it up.
+    """
+
+    __tablename__ = "feedback"
+    __table_args__ = (
+        Index("ix_feedback_author_id", "author_id"),
+        Index("ix_feedback_recipient_id", "recipient_id"),
+    )
+
+    id: Mapped[str] = mapped_column(String(36), primary_key=True, default=lambda: str(uuid.uuid4()))
+    author_id: Mapped[str] = mapped_column(String(36), ForeignKey("employees.id"), nullable=False)
+    recipient_id: Mapped[str] = mapped_column(
+        String(36), ForeignKey("employees.id"), nullable=False
+    )
+    request_id: Mapped[str | None] = mapped_column(String(36), nullable=True)
+    content: Mapped[str] = mapped_column(String, nullable=False)
+    created_at: Mapped[datetime] = mapped_column(
+        DateTime(timezone=True), nullable=False, server_default=func.now()
+    )
+
+
+__all__ = ["Base", "Employee", "Goal", "KeyResult", "Feedback"]

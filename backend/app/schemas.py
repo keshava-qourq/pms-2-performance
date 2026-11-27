@@ -160,6 +160,37 @@ class GoalReviewRequest(BaseModel):
     comment: str | None = None
 
 
+class FeedbackCreate(BaseModel):
+    """AC-026: a colleague and non-empty feedback text. AC-027: blank or
+    missing ``content`` is rejected with a 422 naming the field."""
+
+    model_config = ConfigDict(extra="forbid")
+
+    recipient_id: str
+    content: str = Field(min_length=1)
+    request_id: str | None = None
+
+
+class FeedbackOut(BaseModel):
+    model_config = ConfigDict(from_attributes=True)
+
+    id: str
+    author_id: str
+    recipient_id: str
+    request_id: str | None
+    content: str
+    created_at: datetime
+
+
+class FeedbackRequestCreate(BaseModel):
+    """Scaffolded for a later story (requesting feedback from a colleague);
+    shape matches the approved architecture. Not yet backed by any logic."""
+
+    model_config = ConfigDict(extra="forbid")
+
+    target_id: str
+
+
 class StubResponse(BaseModel):
     """What a generated route returns until someone implements it.
 
