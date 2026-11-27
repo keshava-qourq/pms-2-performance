@@ -1,10 +1,10 @@
 """Employee-scoped resources and the HR-Admin employee directory.
 
 - GET/POST/PATCH /admin/employees* is hr_admin-only (AC-007, AC-008, AC-009).
+- PATCH /admin/employees/{id} also assigns/reassigns the reporting hierarchy
+  (AC-010, AC-011).
 - /employees/{id}/goals uses manager scoping to self + direct reports (AC-005).
 """
-
-import secrets
 
 from fastapi import APIRouter, Depends, Query, status
 from sqlalchemy import or_
@@ -27,7 +27,8 @@ from app.schemas import (
     EmployeeUpdate,
     StubResponse,
 )
-from app.security import hash_password
+from app.services import create_employee as create_employee_service
+from app.services import creates_manager_cycle
 
 router = APIRouter(tags=["employees"])
 
@@ -91,36 +92,12 @@ def create_employee(
     if _email_in_use(db, body.email):
         raise EMPLOYEE_EMAIL_IN_USE.raise_as_http()
 
-    employee = Employee(
-        name=body.name,
-        email=body.email,
-        role=body.role,
-        manager_id=body.manager_id,
-        status="active",
-        # No login/invite flow exists yet for admin-created profiles; a
-        # random, never-disclosed hash satisfies the non-nullable column
-        # until that flow lands.
-        password_hash=hash_password(secrets.token_urlsafe(32)),
-    )
-    db.add(employee)
-    db.commit()
-    db.refresh(employee)
+    # EmployeeCreate.model_config already forbids any field beyond this
+    # minimised set (AC-039, NFR-003); create_employee_service drops anything
+    # outside it too, so the same rule holds for a future bulk-import path
+    # that builds this same dict from a CSV row.
+    employee = create_employee_service(db, body.model_dump())
     return EmployeeOut.model_validate(employee)
-
-
-def _creates_cycle(db: Session, employee_id: str, new_manager_id: str) -> bool:
-    """True if employee_id is an ancestor of new_manager_id, i.e. assigning
-    new_manager_id as employee_id's manager would close a reporting loop."""
-    visited: set[str] = set()
-    walker = db.get(Employee, new_manager_id)
-    while walker is not None:
-        if walker.id == employee_id:
-            return True
-        if walker.id in visited:
-            break
-        visited.add(walker.id)
-        walker = db.get(Employee, walker.manager_id) if walker.manager_id else None
-    return False
 
 
 @router.patch(
@@ -134,6 +111,15 @@ def update_employee(
     current: Employee = Depends(require_hr_admin),  # noqa: B008
     db: Session = Depends(get_db),  # noqa: B008
 ) -> EmployeeOut:
+    """Edit a profile or (re)assign its manager (AC-008, AC-010, AC-011).
+
+    Assigning ``manager_id`` -- whether the employee had none before or is
+    being moved from one manager to another -- is a single update to this
+    row: the previous manager's direct reports and the new manager's direct
+    reports are both just live queries over ``manager_id`` (see
+    ``app.services.direct_reports``), so both sides of the hierarchy reflect
+    the change with nothing further to update.
+    """
     employee = db.get(Employee, id)
     if employee is None:
         raise EMPLOYEE_NOT_FOUND.raise_as_http()
@@ -149,7 +135,7 @@ def update_employee(
             raise EMPLOYEE_MANAGER_SELF.raise_as_http()
         if db.get(Employee, new_manager_id) is None:
             raise EMPLOYEE_MANAGER_NOT_FOUND.raise_as_http()
-        if _creates_cycle(db, id, new_manager_id):
+        if creates_manager_cycle(db, id, new_manager_id):
             raise EMPLOYEE_MANAGER_CYCLE.raise_as_http()
 
     for field, value in data.items():

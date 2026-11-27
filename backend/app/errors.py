@@ -53,3 +53,15 @@ EMPLOYEE_MANAGER_CYCLE = ErrorCode(
     status_code=status.HTTP_422_UNPROCESSABLE_ENTITY,
     detail="manager_id would create a reporting cycle",
 )
+
+# POST /feedback -- AC-026: feedback must be associated with a real colleague.
+FEEDBACK_RECIPIENT_NOT_FOUND = ErrorCode(
+    status_code=status.HTTP_422_UNPROCESSABLE_ENTITY,
+    detail="recipient_id does not exist",
+)
+
+# POST /admin/employees/{id}/erase -- AC-037, AC-038.
+EMPLOYEE_ALREADY_ERASED = ErrorCode(
+    status_code=status.HTTP_409_CONFLICT,
+    detail="Employee has already been erased",
+)

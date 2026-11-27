@@ -7,7 +7,7 @@ import { brand } from "@/lib/brand";
 import { apiFetch, ApiError } from "@/lib/api";
 
 const { Button, Input, Label, Select, Table, THead, TBody, TR, TH, TD, Empty } = UI;
-const { Plus, Edit } = Icons;
+const { Plus, Edit, Trash } = Icons;
 
 const PAGE_SIZE = 25;
 
@@ -29,6 +29,12 @@ interface ListResponse {
   total: number;
   page: number;
   page_size: number;
+}
+
+interface ErasureResponse {
+  id: string;
+  status: string;
+  erased_at: string;
 }
 
 interface EmployeeFormValues {
@@ -251,6 +257,71 @@ function EmployeeForm({
   );
 }
 
+function EraseConfirm({
+  employee,
+  onErased,
+  onCancel,
+}: {
+  employee: Employee;
+  onErased: (id: string) => void;
+  onCancel: () => void;
+}) {
+  const [submitting, setSubmitting] = React.useState(false);
+  const [error, setError] = React.useState<string | null>(null);
+
+  const handleConfirm = async () => {
+    setSubmitting(true);
+    setError(null);
+    try {
+      await apiFetch<ErasureResponse>(`/admin/employees/${employee.id}/erase`, {
+        method: "POST",
+      });
+      onErased(employee.id);
+    } catch (err) {
+      setError(
+        err instanceof ApiError
+          ? err.message
+          : err instanceof Error
+            ? err.message
+            : "Something went wrong. Try again.",
+      );
+      setSubmitting(false);
+    }
+  };
+
+  return (
+    <div
+      data-testid="erase-confirmation"
+      className="mt-6 max-w-lg rounded-[var(--brand-radius)] border p-5"
+      style={{
+        borderColor: "rgba(233,237,233,0.12)",
+        backgroundColor: "rgba(233,237,233,0.04)",
+      }}
+    >
+      <h2 className="text-lg" style={{ fontFamily: brand.fontHeading }}>
+        Erase {employee.name}&rsquo;s personal data
+      </h2>
+      <p className="mt-2 text-sm" style={{ color: brand.neutralColor }}>
+        This removes or anonymises {employee.name}&rsquo;s personal data in line with the
+        organization&rsquo;s retention policy. This cannot be undone.
+      </p>
+      {error ? (
+        <p role="alert" className="mt-3 text-sm" style={{ color: "#cc8a76" }}>
+          {error}
+        </p>
+      ) : null}
+      <div className="mt-4 flex gap-2">
+        <Button type="button" onClick={handleConfirm} disabled={submitting}>
+          {submitting ? "Erasing…" : "Erase personal data"}
+        </Button>
+        <Button type="button" variant="secondary" onClick={onCancel} disabled={submitting}>
+          Cancel
+        </Button>
+      </div>
+    </div>
+  );
+}
+
 export default function Screen() {
   const [search, setSearch] = React.useState("");
   const [debouncedSearch, setDebouncedSearch] = React.useState("");
@@ -264,6 +335,8 @@ export default function Screen() {
     mode: "closed" | "create" | "edit";
     id: string | null;
   }>({ mode: "closed", id: null });
+  const [eraseTarget, setEraseTarget] = React.useState<Employee | null>(null);
+  const [erasedIds, setErasedIds] = React.useState<Set<string>>(new Set());
 
   React.useEffect(() => {
     const t = setTimeout(() => {
@@ -304,10 +377,27 @@ export default function Screen() {
   const managerOptions = items.filter((e) => e.role === "manager" || e.role === "hr_admin");
   const editing = panel.mode === "edit" ? (items.find((e) => e.id === panel.id) ?? null) : null;
 
+  const isErased = (id: string) => erasedIds.has(id);
+  const displayName = (emp: Employee) => (isErased(emp.id) ? "Erased employee" : emp.name);
+
   const managerNameFor = (id: string | null) => {
     if (!id) return "—";
     const found = items.find((e) => e.id === id);
-    return found ? found.name : id;
+    return found ? displayName(found) : id;
+  };
+
+  const directReportsFor = (id: string): string => {
+    const reports = items.filter((e) => e.manager_id === id).map((e) => displayName(e));
+    return reports.length > 0 ? reports.join(", ") : "—";
+  };
+
+  const handleErased = (id: string) => {
+    setErasedIds((prev) => {
+      const next = new Set(prev);
+      next.add(id);
+      return next;
+    });
+    setEraseTarget(null);
   };
 
   const handleCreated = (created: Employee) => {
@@ -342,7 +432,10 @@ export default function Screen() {
           </div>
           <Button
             type="button"
-            onClick={() => setPanel({ mode: "create", id: null })}
+            onClick={() => {
+              setEraseTarget(null);
+              setPanel({ mode: "create", id: null });
+            }}
             className="inline-flex items-center gap-2"
           >
             <Plus className="h-4 w-4" aria-hidden="true" />
@@ -385,6 +478,14 @@ export default function Screen() {
           </div>
         ) : null}
 
+        {eraseTarget ? (
+          <EraseConfirm
+            employee={eraseTarget}
+            onErased={handleErased}
+            onCancel={() => setEraseTarget(null)}
+          />
+        ) : null}
+
         <div className="mt-8">
           {loading ? (
             <p
@@ -422,6 +523,7 @@ export default function Screen() {
                     <TH scope="col">Email</TH>
                     <TH scope="col">Role</TH>
                     <TH scope="col">Manager</TH>
+                    <TH scope="col">Direct reports</TH>
                     <TH scope="col">Status</TH>
                     <TH scope="col">
                       <span className="sr-only">Actions</span>
@@ -431,21 +533,50 @@ export default function Screen() {
                 <TBody>
                   {items.map((e) => (
                     <TR key={e.id}>
-                      <TD>{e.name}</TD>
-                      <TD>{e.email}</TD>
+                      <TD>{displayName(e)}</TD>
+                      <TD>{isErased(e.id) ? "—" : e.email}</TD>
                       <TD>{roleLabel(e.role)}</TD>
                       <TD>{managerNameFor(e.manager_id)}</TD>
-                      <TD>{e.status}</TD>
+                      <TD data-testid={`direct-reports-${e.id}`}>{directReportsFor(e.id)}</TD>
+                      <TD>{isErased(e.id) ? "Erased" : e.status}</TD>
                       <TD>
-                        <Button
-                          type="button"
-                          variant="ghost"
-                          size="sm"
-                          onClick={() => setPanel({ mode: "edit", id: e.id })}
-                          aria-label={`Edit ${e.name}`}
-                        >
-                          <Edit className="h-4 w-4" aria-hidden="true" />
-                        </Button>
+                        <div className="flex items-center gap-1">
+                          <Button
+                            type="button"
+                            variant="ghost"
+                            size="sm"
+                            onClick={() => {
+                              setEraseTarget(null);
+                              setPanel({ mode: "edit", id: e.id });
+                            }}
+                            aria-label={`Edit ${e.name}`}
+                          >
+                            <Edit className="h-4 w-4" aria-hidden="true" />
+                          </Button>
+                          {isErased(e.id) ? (
+                            <span
+                              data-testid={`erase-status-${e.id}`}
+                              className="text-xs"
+                              style={{ color: brand.neutralColor }}
+                            >
+                              Erased
+                            </span>
+                          ) : (
+                            <Button
+                              type="button"
+                              variant="ghost"
+                              size="sm"
+                              onClick={() => {
+                                setPanel({ mode: "closed", id: null });
+                                setEraseTarget(e);
+                              }}
+                              aria-label={`Erase data for ${e.name}`}
+                              data-testid={`erase-btn-${e.id}`}
+                            >
+                              <Trash className="h-4 w-4" aria-hidden="true" />
+                            </Button>
+                          )}
+                        </div>
                       </TD>
                     </TR>
                   ))}
