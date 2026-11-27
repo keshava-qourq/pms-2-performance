@@ -201,6 +201,33 @@ class FeedbackRequestCreate(BaseModel):
     target_id: str
 
 
+ConsentStatus = Literal["granted", "denied", "withdrawn"]
+
+
+class ConsentRequest(BaseModel):
+    """AC-040: the processing purpose and the consent status to record for
+    it. ``purpose`` names what the employee is consenting to (for example
+    ``"feedback_sharing"``); the caller's own identity is never taken from
+    the body."""
+
+    model_config = ConfigDict(extra="forbid")
+
+    purpose: str = Field(min_length=1)
+    status: ConsentStatus
+
+
+class ConsentOut(BaseModel):
+    """The recorded/updated consent, retrievable afterwards (AC-040)."""
+
+    model_config = ConfigDict(from_attributes=True)
+
+    id: str
+    employee_id: str
+    purpose: str
+    status: str
+    recorded_at: datetime
+
+
 class StubResponse(BaseModel):
     """What a generated route returns until someone implements it.
 

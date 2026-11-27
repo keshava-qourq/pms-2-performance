@@ -12,9 +12,17 @@ from datetime import UTC, datetime
 from sqlalchemy.orm import Session
 
 from app.errors import EMPLOYEE_ALREADY_ERASED, EMPLOYEE_NOT_FOUND, FEEDBACK_RECIPIENT_NOT_FOUND
-from app.models import AuditLog, Employee, Feedback, Goal, KeyResult
-from app.schemas import FeedbackCreate, GoalCreate, ManagerSummary, MeResponse
+from app.models import AuditLog, Consent, Employee, Feedback, Goal, KeyResult
+from app.schemas import ConsentRequest, FeedbackCreate, GoalCreate, ManagerSummary, MeResponse
 from app.security import hash_password, verify_password
+
+# The only employee fields performance management needs (AC-039, NFR-003):
+# identity, role and reporting line. Creation -- whether through POST
+# /admin/employees or a future bulk import -- goes through
+# ``create_employee`` below, so neither path can smuggle an extra column
+# (an address, a date of birth, a salary, ...) into the stored record: a key
+# outside this set is simply not read, regardless of what the caller sent.
+EMPLOYEE_MINIMISED_FIELDS = {"name", "email", "role", "manager_id"}
 
 SERVICES = {
     "redis-queue": "REDIS_URL",
@@ -80,6 +88,61 @@ def build_me_response(db: Session, employee: Employee) -> MeResponse:
         updated_at=employee.updated_at,
         manager=get_manager_summary(db, employee),
     )
+
+
+def create_employee(db: Session, data: dict) -> Employee:
+    """Persist a new employee record from ``data``, keeping only the fields
+    performance management needs (AC-039, NFR-003).
+
+    ``data`` is a plain mapping -- the validated body of POST
+    /admin/employees today, and in the same shape a future CSV-import row
+    would take -- and any key outside ``EMPLOYEE_MINIMISED_FIELDS`` is
+    ignored here, so data minimisation holds at the service layer even if a
+    looser caller passed through more than the schema allows. Callers are
+    expected to have already checked ``email``/``manager_id`` uniqueness and
+    existence; this function only shapes and stores the row.
+    """
+    allowed = {k: v for k, v in data.items() if k in EMPLOYEE_MINIMISED_FIELDS}
+    employee = Employee(
+        name=allowed["name"],
+        email=allowed["email"],
+        role=allowed["role"],
+        manager_id=allowed.get("manager_id"),
+        status="active",
+        # No login/invite flow exists yet for admin-created profiles; a
+        # random, never-disclosed hash satisfies the non-nullable column
+        # until that flow lands.
+        password_hash=hash_password(secrets.token_urlsafe(32)),
+    )
+    db.add(employee)
+    db.commit()
+    db.refresh(employee)
+    return employee
+
+
+def record_consent(db: Session, employee: Employee, body: ConsentRequest) -> Consent:
+    """Record or update ``employee``'s own consent status for
+    ``body.purpose`` (AC-040).
+
+    One row per ``(employee_id, purpose)``: recording the same purpose again
+    updates its existing row's ``status`` and ``recorded_at`` rather than
+    adding a duplicate, so the status retrieved for that purpose afterwards
+    is always this single current one.
+    """
+    consent = (
+        db.query(Consent)
+        .filter(Consent.employee_id == employee.id, Consent.purpose == body.purpose)
+        .first()
+    )
+    if consent is None:
+        consent = Consent(employee_id=employee.id, purpose=body.purpose, status=body.status)
+        db.add(consent)
+    else:
+        consent.status = body.status
+        consent.recorded_at = datetime.now(UTC)
+    db.commit()
+    db.refresh(consent)
+    return consent
 
 
 def create_goal(db: Session, employee: Employee, body: GoalCreate) -> Goal:

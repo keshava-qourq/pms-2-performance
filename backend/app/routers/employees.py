@@ -6,8 +6,6 @@
 - /employees/{id}/goals uses manager scoping to self + direct reports (AC-005).
 """
 
-import secrets
-
 from fastapi import APIRouter, Depends, Query, status
 from sqlalchemy import or_
 from sqlalchemy.orm import Session
@@ -29,7 +27,7 @@ from app.schemas import (
     EmployeeUpdate,
     StubResponse,
 )
-from app.security import hash_password
+from app.services import create_employee as create_employee_service
 from app.services import creates_manager_cycle
 
 router = APIRouter(tags=["employees"])
@@ -94,20 +92,11 @@ def create_employee(
     if _email_in_use(db, body.email):
         raise EMPLOYEE_EMAIL_IN_USE.raise_as_http()
 
-    employee = Employee(
-        name=body.name,
-        email=body.email,
-        role=body.role,
-        manager_id=body.manager_id,
-        status="active",
-        # No login/invite flow exists yet for admin-created profiles; a
-        # random, never-disclosed hash satisfies the non-nullable column
-        # until that flow lands.
-        password_hash=hash_password(secrets.token_urlsafe(32)),
-    )
-    db.add(employee)
-    db.commit()
-    db.refresh(employee)
+    # EmployeeCreate.model_config already forbids any field beyond this
+    # minimised set (AC-039, NFR-003); create_employee_service drops anything
+    # outside it too, so the same rule holds for a future bulk-import path
+    # that builds this same dict from a CSV row.
+    employee = create_employee_service(db, body.model_dump())
     return EmployeeOut.model_validate(employee)
 
 

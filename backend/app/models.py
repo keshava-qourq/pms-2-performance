@@ -153,4 +153,33 @@ class AuditLog(Base):
     )
 
 
-__all__ = ["Base", "Employee", "Goal", "KeyResult", "Feedback", "AuditLog"]
+class Consent(Base):
+    """An employee's recorded consent status for one processing purpose
+    (AC-040).
+
+    One row per ``(employee_id, purpose)`` pair (enforced by a unique index):
+    recording consent again for a purpose already on file updates that same
+    row's ``status`` and ``recorded_at`` rather than piling up duplicate
+    rows, so the status retrieved for a purpose is always the single current
+    one.
+    """
+
+    __tablename__ = "consents"
+    __table_args__ = (
+        Index("ix_consents_employee_id", "employee_id"),
+        Index("ix_consents_employee_purpose", "employee_id", "purpose", unique=True),
+    )
+
+    id: Mapped[str] = mapped_column(String(36), primary_key=True, default=lambda: str(uuid.uuid4()))
+    employee_id: Mapped[str] = mapped_column(String(36), ForeignKey("employees.id"), nullable=False)
+    purpose: Mapped[str] = mapped_column(String(100), nullable=False)
+    status: Mapped[str] = mapped_column(String(20), nullable=False)
+    recorded_at: Mapped[datetime] = mapped_column(
+        DateTime(timezone=True),
+        nullable=False,
+        server_default=func.now(),
+        onupdate=func.now(),
+    )
+
+
+__all__ = ["Base", "Employee", "Goal", "KeyResult", "Feedback", "AuditLog", "Consent"]
