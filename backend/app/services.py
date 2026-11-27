@@ -6,13 +6,15 @@ what the running deployment can actually reach.
 """
 
 import os
+import secrets
+from datetime import UTC, datetime
 
 from sqlalchemy.orm import Session
 
-from app.errors import FEEDBACK_RECIPIENT_NOT_FOUND
-from app.models import Employee, Feedback, Goal, KeyResult
+from app.errors import EMPLOYEE_ALREADY_ERASED, EMPLOYEE_NOT_FOUND, FEEDBACK_RECIPIENT_NOT_FOUND
+from app.models import AuditLog, Employee, Feedback, Goal, KeyResult
 from app.schemas import FeedbackCreate, GoalCreate, ManagerSummary, MeResponse
-from app.security import verify_password
+from app.security import hash_password, verify_password
 
 SERVICES = {
     "redis-queue": "REDIS_URL",
@@ -127,6 +129,53 @@ def direct_reports(db: Session, manager_id: str) -> list[Employee]:
     return (
         db.query(Employee).filter(Employee.manager_id == manager_id).order_by(Employee.name).all()
     )
+
+
+def erase_employee(db: Session, actor: Employee, employee_id: str) -> Employee:
+    """Action an approved GDPR erasure request for ``employee_id`` (AC-037).
+
+    Removes/anonymises the employee's personal data in line with retention
+    policy: their name and email are replaced with non-identifying values,
+    their password hash is replaced with an unusable one (so the erased
+    account can no longer authenticate), and ``status``/``erased_at`` record
+    that the erasure has happened. The reporting line (``manager_id``) is
+    organisational data, not personal data, and is left untouched.
+
+    Raises ``EMPLOYEE_NOT_FOUND`` when ``employee_id`` does not exist, and
+    ``EMPLOYEE_ALREADY_ERASED`` when it has already been actioned, so an
+    erasure is never actioned twice (idempotent from the caller's point of
+    view: the second call fails loudly rather than re-anonymising already
+    anonymised data).
+
+    Writes one ``audit_logs`` row recording that the erasure was performed,
+    by whom and when -- the durable evidence the organisation keeps even
+    though the employee's own personal data is no longer accessible
+    afterwards (AC-038).
+    """
+    employee = db.get(Employee, employee_id)
+    if employee is None:
+        raise EMPLOYEE_NOT_FOUND.raise_as_http()
+    if employee.erased_at is not None or employee.status == "erased":
+        raise EMPLOYEE_ALREADY_ERASED.raise_as_http()
+
+    now = datetime.now(UTC)
+    employee.name = "Erased Employee"
+    employee.email = f"erased-{employee.id}@erased.invalid"
+    employee.password_hash = hash_password(secrets.token_urlsafe())
+    employee.status = "erased"
+    employee.erased_at = now
+
+    db.add(
+        AuditLog(
+            actor_id=actor.id,
+            action="employee_erasure",
+            target_type="employee",
+            target_id=employee.id,
+        )
+    )
+    db.commit()
+    db.refresh(employee)
+    return employee
 
 
 def creates_manager_cycle(db: Session, employee_id: str, candidate_manager_id: str) -> bool:

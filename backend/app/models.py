@@ -46,6 +46,10 @@ class Employee(Base):
         server_default=func.now(),
         onupdate=func.now(),
     )
+    # Set once an erasure request has been actioned (AC-037, AC-038); ``None``
+    # for every employee who has not been erased. Distinct from ``status`` so
+    # "erased" can be told apart from a merely deactivated account.
+    erased_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True), nullable=True)
 
     manager: Mapped["Employee | None"] = relationship(
         "Employee", remote_side=[id], foreign_keys=[manager_id]
@@ -124,4 +128,29 @@ class Feedback(Base):
     )
 
 
-__all__ = ["Base", "Employee", "Goal", "KeyResult", "Feedback"]
+class AuditLog(Base):
+    """A durable record of a sensitive administrative action (AC-037).
+
+    Actioning an employee's erasure writes one row here -- who did it, to
+    whom, and when -- so the organisation can demonstrate the erasure was
+    performed, even though the employee's own personal data is no longer
+    retrievable afterwards (AC-038).
+    """
+
+    __tablename__ = "audit_logs"
+    __table_args__ = (
+        Index("ix_audit_logs_actor_id", "actor_id"),
+        Index("ix_audit_logs_target_id", "target_id"),
+    )
+
+    id: Mapped[str] = mapped_column(String(36), primary_key=True, default=lambda: str(uuid.uuid4()))
+    actor_id: Mapped[str] = mapped_column(String(36), ForeignKey("employees.id"), nullable=False)
+    action: Mapped[str] = mapped_column(String(50), nullable=False)
+    target_type: Mapped[str] = mapped_column(String(50), nullable=False)
+    target_id: Mapped[str] = mapped_column(String(36), nullable=False)
+    created_at: Mapped[datetime] = mapped_column(
+        DateTime(timezone=True), nullable=False, server_default=func.now()
+    )
+
+
+__all__ = ["Base", "Employee", "Goal", "KeyResult", "Feedback", "AuditLog"]

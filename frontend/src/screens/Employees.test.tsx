@@ -314,4 +314,100 @@ describe("Employees screen", () => {
     expect(await screen.findByTestId("direct-reports-e-1")).toHaveTextContent("—");
     expect(screen.getByTestId("direct-reports-e-4")).toHaveTextContent("Bob Employee");
   });
+
+  it("[AC-037] clicking erase shows a confirmation and does not call the API until confirmed", async () => {
+    vi.mocked(apiFetch).mockResolvedValueOnce(page([BOB], 1));
+    renderScreen();
+    await screen.findByText("Bob Employee");
+
+    fireEvent.click(screen.getByTestId("erase-btn-e-2"));
+
+    expect(screen.getByTestId("erase-confirmation")).toHaveTextContent(
+      "Erase Bob Employee’s personal data",
+    );
+    expect(apiFetch).toHaveBeenCalledTimes(1); // only the initial GET, no erase call yet
+
+    fireEvent.click(screen.getByRole("button", { name: /cancel/i }));
+    expect(screen.queryByTestId("erase-confirmation")).toBeNull();
+    expect(apiFetch).toHaveBeenCalledTimes(1);
+  });
+
+  it("[AC-037] confirming erasure actions the erasure via POST /admin/employees/{id}/erase", async () => {
+    vi.mocked(apiFetch).mockResolvedValueOnce(page([BOB], 1));
+    renderScreen();
+    await screen.findByText("Bob Employee");
+
+    fireEvent.click(screen.getByTestId("erase-btn-e-2"));
+
+    vi.mocked(apiFetch).mockResolvedValueOnce({
+      id: "e-2",
+      status: "erased",
+      erased_at: "2026-01-01T00:00:00Z",
+    });
+    fireEvent.click(screen.getByRole("button", { name: /^erase personal data$/i }));
+
+    await waitFor(() =>
+      expect(apiFetch).toHaveBeenLastCalledWith(
+        "/admin/employees/e-2/erase",
+        expect.objectContaining({ method: "POST" }),
+      ),
+    );
+    await waitFor(() => expect(screen.queryByTestId("erase-confirmation")).toBeNull());
+  });
+
+  it("[AC-037] a 409 for an already-erased employee shows the server message and does not close the confirmation", async () => {
+    vi.mocked(apiFetch).mockResolvedValueOnce(page([BOB], 1));
+    renderScreen();
+    await screen.findByText("Bob Employee");
+
+    fireEvent.click(screen.getByTestId("erase-btn-e-2"));
+
+    vi.mocked(apiFetch).mockRejectedValueOnce(
+      new ApiError("Employee has already been erased", 409, "Employee has already been erased"),
+    );
+    fireEvent.click(screen.getByRole("button", { name: /^erase personal data$/i }));
+
+    expect(await screen.findByText(/employee has already been erased/i)).toBeInTheDocument();
+    expect(screen.getByTestId("erase-confirmation")).toBeInTheDocument();
+  });
+
+  it("[AC-038] after a successful erasure the employee's name and email are no longer shown", async () => {
+    vi.mocked(apiFetch).mockResolvedValueOnce(page([ALICE, BOB], 2));
+    renderScreen();
+    await screen.findAllByText("Bob Employee");
+
+    fireEvent.click(screen.getByTestId("erase-btn-e-2"));
+    vi.mocked(apiFetch).mockResolvedValueOnce({
+      id: "e-2",
+      status: "erased",
+      erased_at: "2026-01-01T00:00:00Z",
+    });
+    fireEvent.click(screen.getByRole("button", { name: /^erase personal data$/i }));
+
+    await waitFor(() => expect(screen.queryByText("Bob Employee")).toBeNull());
+    expect(screen.queryByText("bob@example.com")).toBeNull();
+    expect(screen.getAllByText("Erased employee").length).toBeGreaterThan(0);
+    expect(screen.queryByTestId("erase-btn-e-2")).toBeNull();
+    expect(screen.getByTestId("erase-status-e-2")).toHaveTextContent("Erased");
+  });
+
+  it("[AC-038] an erased employee's original name no longer appears among their manager's direct reports", async () => {
+    vi.mocked(apiFetch).mockResolvedValueOnce(page([ALICE, BOB], 2));
+    renderScreen();
+    await screen.findAllByText("Bob Employee");
+    expect(screen.getByTestId("direct-reports-e-1")).toHaveTextContent("Bob Employee");
+
+    fireEvent.click(screen.getByTestId("erase-btn-e-2"));
+    vi.mocked(apiFetch).mockResolvedValueOnce({
+      id: "e-2",
+      status: "erased",
+      erased_at: "2026-01-01T00:00:00Z",
+    });
+    fireEvent.click(screen.getByRole("button", { name: /^erase personal data$/i }));
+
+    await waitFor(() =>
+      expect(screen.getByTestId("direct-reports-e-1")).not.toHaveTextContent("Bob Employee"),
+    );
+    expect(screen.getByTestId("direct-reports-e-1")).toHaveTextContent("Erased employee");
+  });
 });

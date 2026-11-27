@@ -94,6 +94,16 @@ class EmployeeListResponse(BaseModel):
     page_size: int
 
 
+class EmployeeErasureResponse(BaseModel):
+    """What actioning an erasure returns (AC-037, AC-038): confirmation that
+    the employee's personal data has been removed/anonymised, never the
+    data itself."""
+
+    id: str
+    status: str
+    erased_at: datetime
+
+
 class KeyResultCreate(BaseModel):
     """One measurable key result of a new objective (AC-016)."""
 
