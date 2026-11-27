@@ -7,7 +7,7 @@ generated route returns until it has been implemented.
 from datetime import datetime
 from typing import Literal
 
-from pydantic import BaseModel, ConfigDict, EmailStr, Field
+from pydantic import BaseModel, ConfigDict, EmailStr
 
 
 class LoginRequest(BaseModel):
@@ -92,140 +92,6 @@ class EmployeeListResponse(BaseModel):
     total: int
     page: int
     page_size: int
-
-
-class EmployeeErasureResponse(BaseModel):
-    """What actioning an erasure returns (AC-037, AC-038): confirmation that
-    the employee's personal data has been removed/anonymised, never the
-    data itself."""
-
-    id: str
-    status: str
-    erased_at: datetime
-
-
-class KeyResultCreate(BaseModel):
-    """One measurable key result of a new objective (AC-016)."""
-
-    model_config = ConfigDict(extra="forbid")
-
-    title: str = Field(min_length=1)
-    target_value: float | None = None
-
-
-class GoalCreate(BaseModel):
-    """AC-016: a title, an optional description and one or more key results.
-    AC-017: a missing title, or an empty ``key_results`` list, is rejected
-    with a 422 naming the field(s) that are required."""
-
-    model_config = ConfigDict(extra="forbid")
-
-    title: str = Field(min_length=1)
-    description: str | None = None
-    key_results: list[KeyResultCreate] = Field(min_length=1)
-
-
-class KeyResultOut(BaseModel):
-    model_config = ConfigDict(from_attributes=True)
-
-    id: str
-    goal_id: str
-    title: str
-    target_value: float | None
-    current_value: float
-    status: str
-
-
-class GoalOut(BaseModel):
-    model_config = ConfigDict(from_attributes=True)
-
-    id: str
-    employee_id: str
-    title: str
-    description: str | None
-    status: str
-    progress: float
-    approval_status: str
-    created_at: datetime
-    key_results: list[KeyResultOut]
-
-
-class KeyResultUpdate(BaseModel):
-    """Scaffolded for a later story (key result progress updates); shape
-    matches the approved architecture. Not yet backed by any logic."""
-
-    model_config = ConfigDict(extra="forbid")
-
-    current_value: float | None = None
-    status: str | None = None
-
-
-class GoalReviewRequest(BaseModel):
-    """Scaffolded for a later story (manager review of a submitted goal);
-    shape matches the approved architecture. Not yet backed by any logic."""
-
-    model_config = ConfigDict(extra="forbid")
-
-    decision: str
-    comment: str | None = None
-
-
-class FeedbackCreate(BaseModel):
-    """AC-026: a colleague and non-empty feedback text. AC-027: blank or
-    missing ``content`` is rejected with a 422 naming the field."""
-
-    model_config = ConfigDict(extra="forbid")
-
-    recipient_id: str
-    content: str = Field(min_length=1)
-    request_id: str | None = None
-
-
-class FeedbackOut(BaseModel):
-    model_config = ConfigDict(from_attributes=True)
-
-    id: str
-    author_id: str
-    recipient_id: str
-    request_id: str | None
-    content: str
-    created_at: datetime
-
-
-class FeedbackRequestCreate(BaseModel):
-    """Scaffolded for a later story (requesting feedback from a colleague);
-    shape matches the approved architecture. Not yet backed by any logic."""
-
-    model_config = ConfigDict(extra="forbid")
-
-    target_id: str
-
-
-ConsentStatus = Literal["granted", "denied", "withdrawn"]
-
-
-class ConsentRequest(BaseModel):
-    """AC-040: the processing purpose and the consent status to record for
-    it. ``purpose`` names what the employee is consenting to (for example
-    ``"feedback_sharing"``); the caller's own identity is never taken from
-    the body."""
-
-    model_config = ConfigDict(extra="forbid")
-
-    purpose: str = Field(min_length=1)
-    status: ConsentStatus
-
-
-class ConsentOut(BaseModel):
-    """The recorded/updated consent, retrievable afterwards (AC-040)."""
-
-    model_config = ConfigDict(from_attributes=True)
-
-    id: str
-    employee_id: str
-    purpose: str
-    status: str
-    recorded_at: datetime
 
 
 class StubResponse(BaseModel):

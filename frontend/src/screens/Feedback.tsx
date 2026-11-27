@@ -6,7 +6,6 @@ import * as UI from "@/lib/ui";
 import { Icons } from "@/lib/icons";
 import { brand } from "@/lib/brand";
 import { useNavigate } from "@/lib/navigate";
-import { apiFetch, ApiError } from "@/lib/api";
 
 const {
   Card,
@@ -405,7 +404,7 @@ export default function Screen() {
     setConfirmDecline(null);
   }
 
-  async function handleSubmit(e) {
+  function handleSubmit(e) {
     e.preventDefault();
     const next = {};
     if (!recipient)
@@ -421,36 +420,29 @@ export default function Screen() {
       return;
     }
 
-    const person = COLLEAGUES.find((c) => c.id === recipient);
-    if (person && person.status === "closed") {
-      setFormError(
-        person.name +
-          "'s employee record was closed on 12 October, so nothing can be filed against it. Your draft is kept — pick another colleague, or ask People Ops to reopen the record.",
-      );
-      return;
-    }
+    setSending(true);
+    const t = setTimeout(() => {
+      setSending(false);
+      const person = COLLEAGUES.find((c) => c.id === recipient);
+      if (person.status === "closed") {
+        setFormError(
+          person.name +
+            "'s employee record was closed on 12 October, so nothing can be filed against it. Your draft is kept — pick another colleague, or ask People Ops to reopen the record.",
+        );
+        return;
+      }
 
-    if (mode === "give") {
-      setSending(true);
-      try {
-        const created = await apiFetch("/feedback", {
-          method: "POST",
-          body: JSON.stringify({
-            recipient_id: recipient,
-            content: content.trim(),
-            request_id: linkedRequest ? linkedRequest.id : null,
-          }),
-        });
+      if (mode === "give") {
         const item = {
-          id: created.id,
-          personId: created.recipient_id,
-          person: person ? person.name : created.recipient_id,
-          role: person ? person.title.split(" · ")[0] : "",
+          id: "fb-" + Math.floor(Math.random() * 9000 + 2300),
+          personId: person.id,
+          person: person.name,
+          role: person.title.split(" · ")[0],
           date: "Just now",
-          ts: Date.now(),
-          requestId: created.request_id,
-          tag: created.request_id ? "Answer to their request" : null,
-          content: created.content,
+          ts: 20261030,
+          requestId: linkedRequest ? linkedRequest.id : null,
+          tag: linkedRequest ? "Answer to their request" : null,
+          content: content.trim(),
           isNew: true,
         };
         setGiven((prev) => [item, ...prev]);
@@ -463,48 +455,30 @@ export default function Screen() {
           kind: "sent",
           text:
             "Feedback sent to " +
-            (person ? person.name : "your colleague") +
+            person.name +
             ". Only the two of you and your managers can read it.",
         });
         setTab("given");
-        setContent("");
-        setRecipient("");
-        setLinkedRequest(null);
-        setSynced("just now");
-        setQuery("");
-      } catch (err) {
-        if (err instanceof ApiError && typeof err.detail === "string") {
-          setFormError(err.detail);
-        } else {
-          setFormError(err instanceof Error ? err.message : "Something went wrong. Try again.");
-        }
-      } finally {
-        setSending(false);
+      } else {
+        const req = {
+          id: "fr-" + Math.floor(Math.random() * 400 + 340),
+          personId: person.id,
+          person: person.name,
+          role: person.title.split(" · ")[0],
+          sent: "30 Oct 2026",
+          status: "pending",
+          isNew: true,
+        };
+        setSent((prev) => [req, ...prev]);
+        setBanner({
+          kind: "sent",
+          text:
+            "Request sent to " +
+            person.name +
+            ". It's in their inbox now; you'll be notified when they answer.",
+        });
+        setTab("requests");
       }
-      return;
-    }
-
-    setSending(true);
-    const t = setTimeout(() => {
-      setSending(false);
-      const req = {
-        id: "fr-" + Math.floor(Math.random() * 400 + 340),
-        personId: person.id,
-        person: person.name,
-        role: person.title.split(" · ")[0],
-        sent: "30 Oct 2026",
-        status: "pending",
-        isNew: true,
-      };
-      setSent((prev) => [req, ...prev]);
-      setBanner({
-        kind: "sent",
-        text:
-          "Request sent to " +
-          person.name +
-          ". It's in their inbox now; you'll be notified when they answer.",
-      });
-      setTab("requests");
       setContent("");
       setRecipient("");
       setLinkedRequest(null);

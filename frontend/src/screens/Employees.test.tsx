@@ -44,28 +44,6 @@ const BOB = {
   updated_at: "2023-01-02T00:00:00Z",
 };
 
-const DAVE = {
-  id: "e-4",
-  name: "Dave Manager",
-  email: "dave@example.com",
-  role: "manager",
-  manager_id: null,
-  status: "active",
-  created_at: "2023-01-03T00:00:00Z",
-  updated_at: "2023-01-03T00:00:00Z",
-};
-
-const CAROL = {
-  id: "e-3",
-  name: "Carol Employee",
-  email: "carol@example.com",
-  role: "employee",
-  manager_id: null,
-  status: "active",
-  created_at: "2023-01-04T00:00:00Z",
-  updated_at: "2023-01-04T00:00:00Z",
-};
-
 describe("Employees screen", () => {
   beforeEach(() => {
     vi.mocked(apiFetch).mockReset();
@@ -97,7 +75,7 @@ describe("Employees screen", () => {
     vi.mocked(apiFetch).mockResolvedValueOnce(page([ALICE, BOB], 2));
     renderScreen();
     expect((await screen.findAllByText("Alice Manager")).length).toBeGreaterThan(0);
-    expect(screen.getAllByText("Bob Employee").length).toBeGreaterThan(0);
+    expect(screen.getByText("Bob Employee")).toBeInTheDocument();
     expect(screen.queryByText("Marguerite Oyelaran")).toBeNull();
     expect(screen.queryByText(/northbeam/i)).toBeNull();
   });
@@ -196,7 +174,7 @@ describe("Employees screen", () => {
         }),
       ),
     );
-    expect((await screen.findAllByText("Carol New")).length).toBeGreaterThan(0);
+    expect(await screen.findByText("Carol New")).toBeInTheDocument();
   });
 
   it("[AC-server] a 409 on create shows 'Email already in use' on the email field", async () => {
@@ -221,7 +199,7 @@ describe("Employees screen", () => {
   it("[AC-008] editing submits only changed fields via PATCH and shows the update in the list", async () => {
     vi.mocked(apiFetch).mockResolvedValueOnce(page([ALICE, BOB], 2));
     renderScreen();
-    await screen.findAllByText("Bob Employee");
+    await screen.findByText("Bob Employee");
 
     fireEvent.click(screen.getByRole("button", { name: /edit bob employee/i }));
     fireEvent.change(screen.getByLabelText(/full name/i), { target: { value: "Bob Updated" } });
@@ -235,7 +213,7 @@ describe("Employees screen", () => {
         expect.objectContaining({ method: "PATCH", body: JSON.stringify({ name: "Bob Updated" }) }),
       ),
     );
-    expect((await screen.findAllByText("Bob Updated")).length).toBeGreaterThan(0);
+    expect(await screen.findByText("Bob Updated")).toBeInTheDocument();
   });
 
   it("[AC-server] a 422 shows field-level messages from the server", async () => {
@@ -257,157 +235,5 @@ describe("Employees screen", () => {
     fireEvent.click(screen.getByRole("button", { name: /^add employee$/i }));
 
     expect(await screen.findByText(/name is too long/i)).toBeInTheDocument();
-  });
-
-  it("[AC-010] a direct report appears under its assigned manager", async () => {
-    vi.mocked(apiFetch).mockResolvedValueOnce(page([ALICE, BOB], 2));
-    renderScreen();
-    await screen.findAllByText("Bob Employee");
-
-    expect(screen.getByTestId("direct-reports-e-1")).toHaveTextContent("Bob Employee");
-  });
-
-  it("[AC-010] assigning a manager to an unmanaged employee adds them to that manager's direct reports", async () => {
-    vi.mocked(apiFetch).mockResolvedValueOnce(page([ALICE, CAROL], 2));
-    renderScreen();
-    await screen.findByText("Carol Employee");
-
-    expect(screen.getByTestId("direct-reports-e-1")).toHaveTextContent("—");
-
-    fireEvent.click(screen.getByRole("button", { name: /edit carol employee/i }));
-    fireEvent.change(screen.getByLabelText(/^manager$/i), { target: { value: "e-1" } });
-
-    vi.mocked(apiFetch).mockResolvedValueOnce({ ...CAROL, manager_id: "e-1" });
-    fireEvent.click(screen.getByRole("button", { name: /save changes/i }));
-
-    await waitFor(() =>
-      expect(apiFetch).toHaveBeenLastCalledWith(
-        "/admin/employees/e-3",
-        expect.objectContaining({ method: "PATCH", body: JSON.stringify({ manager_id: "e-1" }) }),
-      ),
-    );
-
-    expect(await screen.findByTestId("direct-reports-e-1")).toHaveTextContent("Carol Employee");
-  });
-
-  it("[AC-011] reassigning a manager updates the hierarchy for both the previous and new manager", async () => {
-    vi.mocked(apiFetch).mockResolvedValueOnce(page([ALICE, DAVE, BOB], 3));
-    renderScreen();
-    await screen.findAllByText("Bob Employee");
-
-    expect(screen.getByTestId("direct-reports-e-1")).toHaveTextContent("Bob Employee");
-    expect(screen.getByTestId("direct-reports-e-4")).toHaveTextContent("—");
-
-    fireEvent.click(screen.getByRole("button", { name: /edit bob employee/i }));
-    fireEvent.change(screen.getByLabelText(/^manager$/i), { target: { value: "e-4" } });
-
-    vi.mocked(apiFetch).mockResolvedValueOnce({ ...BOB, manager_id: "e-4" });
-    fireEvent.click(screen.getByRole("button", { name: /save changes/i }));
-
-    await waitFor(() =>
-      expect(apiFetch).toHaveBeenLastCalledWith(
-        "/admin/employees/e-2",
-        expect.objectContaining({ method: "PATCH", body: JSON.stringify({ manager_id: "e-4" }) }),
-      ),
-    );
-
-    expect(await screen.findByTestId("direct-reports-e-1")).toHaveTextContent("—");
-    expect(screen.getByTestId("direct-reports-e-4")).toHaveTextContent("Bob Employee");
-  });
-
-  it("[AC-037] clicking erase shows a confirmation and does not call the API until confirmed", async () => {
-    vi.mocked(apiFetch).mockResolvedValueOnce(page([BOB], 1));
-    renderScreen();
-    await screen.findByText("Bob Employee");
-
-    fireEvent.click(screen.getByTestId("erase-btn-e-2"));
-
-    expect(screen.getByTestId("erase-confirmation")).toHaveTextContent(
-      "Erase Bob Employee’s personal data",
-    );
-    expect(apiFetch).toHaveBeenCalledTimes(1); // only the initial GET, no erase call yet
-
-    fireEvent.click(screen.getByRole("button", { name: /cancel/i }));
-    expect(screen.queryByTestId("erase-confirmation")).toBeNull();
-    expect(apiFetch).toHaveBeenCalledTimes(1);
-  });
-
-  it("[AC-037] confirming erasure actions the erasure via POST /admin/employees/{id}/erase", async () => {
-    vi.mocked(apiFetch).mockResolvedValueOnce(page([BOB], 1));
-    renderScreen();
-    await screen.findByText("Bob Employee");
-
-    fireEvent.click(screen.getByTestId("erase-btn-e-2"));
-
-    vi.mocked(apiFetch).mockResolvedValueOnce({
-      id: "e-2",
-      status: "erased",
-      erased_at: "2026-01-01T00:00:00Z",
-    });
-    fireEvent.click(screen.getByRole("button", { name: /^erase personal data$/i }));
-
-    await waitFor(() =>
-      expect(apiFetch).toHaveBeenLastCalledWith(
-        "/admin/employees/e-2/erase",
-        expect.objectContaining({ method: "POST" }),
-      ),
-    );
-    await waitFor(() => expect(screen.queryByTestId("erase-confirmation")).toBeNull());
-  });
-
-  it("[AC-037] a 409 for an already-erased employee shows the server message and does not close the confirmation", async () => {
-    vi.mocked(apiFetch).mockResolvedValueOnce(page([BOB], 1));
-    renderScreen();
-    await screen.findByText("Bob Employee");
-
-    fireEvent.click(screen.getByTestId("erase-btn-e-2"));
-
-    vi.mocked(apiFetch).mockRejectedValueOnce(
-      new ApiError("Employee has already been erased", 409, "Employee has already been erased"),
-    );
-    fireEvent.click(screen.getByRole("button", { name: /^erase personal data$/i }));
-
-    expect(await screen.findByText(/employee has already been erased/i)).toBeInTheDocument();
-    expect(screen.getByTestId("erase-confirmation")).toBeInTheDocument();
-  });
-
-  it("[AC-038] after a successful erasure the employee's name and email are no longer shown", async () => {
-    vi.mocked(apiFetch).mockResolvedValueOnce(page([ALICE, BOB], 2));
-    renderScreen();
-    await screen.findAllByText("Bob Employee");
-
-    fireEvent.click(screen.getByTestId("erase-btn-e-2"));
-    vi.mocked(apiFetch).mockResolvedValueOnce({
-      id: "e-2",
-      status: "erased",
-      erased_at: "2026-01-01T00:00:00Z",
-    });
-    fireEvent.click(screen.getByRole("button", { name: /^erase personal data$/i }));
-
-    await waitFor(() => expect(screen.queryByText("Bob Employee")).toBeNull());
-    expect(screen.queryByText("bob@example.com")).toBeNull();
-    expect(screen.getAllByText("Erased employee").length).toBeGreaterThan(0);
-    expect(screen.queryByTestId("erase-btn-e-2")).toBeNull();
-    expect(screen.getByTestId("erase-status-e-2")).toHaveTextContent("Erased");
-  });
-
-  it("[AC-038] an erased employee's original name no longer appears among their manager's direct reports", async () => {
-    vi.mocked(apiFetch).mockResolvedValueOnce(page([ALICE, BOB], 2));
-    renderScreen();
-    await screen.findAllByText("Bob Employee");
-    expect(screen.getByTestId("direct-reports-e-1")).toHaveTextContent("Bob Employee");
-
-    fireEvent.click(screen.getByTestId("erase-btn-e-2"));
-    vi.mocked(apiFetch).mockResolvedValueOnce({
-      id: "e-2",
-      status: "erased",
-      erased_at: "2026-01-01T00:00:00Z",
-    });
-    fireEvent.click(screen.getByRole("button", { name: /^erase personal data$/i }));
-
-    await waitFor(() =>
-      expect(screen.getByTestId("direct-reports-e-1")).not.toHaveTextContent("Bob Employee"),
-    );
-    expect(screen.getByTestId("direct-reports-e-1")).toHaveTextContent("Erased employee");
   });
 });

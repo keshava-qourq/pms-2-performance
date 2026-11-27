@@ -229,37 +229,17 @@ export default function Screen() {
     failed: { label: "Failed", color: danger, Icon: Icons.AlertCircle },
   };
 
-  const [savingConsentId, setSavingConsentId] = React.useState(null);
-  const [consentError, setConsentError] = React.useState("");
-
   const toggleConsent = (id) => {
-    const target = consents.find((c) => c.id === id);
-    if (!target || target.locked || savingConsentId) return;
-    const next = target.status === "granted" ? "withdrawn" : "granted";
-    setConsentError("");
-    setSavingConsentId(id);
-    apiFetch("/me/consent", {
-      method: "POST",
-      body: JSON.stringify({ purpose: target.purpose, status: next }),
-    })
-      .then((recorded) => {
-        setConsents((prev) =>
-          prev.map((c) =>
-            c.id === id
-              ? { ...c, status: recorded.status, recorded_at: formatDate(recorded.recorded_at) }
-              : c,
-          ),
-        );
+    setConsents((prev) =>
+      prev.map((c) => {
+        if (c.id !== id || c.locked) return c;
+        const next = c.status === "granted" ? "withdrawn" : "granted";
         setMessage(
-          `Consent ${recorded.status === "granted" ? "granted" : "withdrawn"} — “${target.purpose}”. Recorded ${formatDateTime(recorded.recorded_at)}.`,
+          `Consent ${next === "granted" ? "granted" : "withdrawn"} — “${c.purpose}”. Recorded 30 October 2026, 09:51.`,
         );
-      })
-      .catch(() => {
-        setConsentError("We could not update that consent. Try again.");
-      })
-      .finally(() => {
-        setSavingConsentId(null);
-      });
+        return { ...c, status: next, recorded_at: "30 October 2026" };
+      }),
+    );
   };
 
   const toggleInclude = (key) => {
@@ -755,21 +735,6 @@ export default function Screen() {
               </div>
             </CardHeader>
             <CardContent className="px-6 pb-6">
-              {consentError ? (
-                <p
-                  role="alert"
-                  className="v-in mb-4 flex items-start gap-2 p-3 text-sm"
-                  style={{
-                    color: danger,
-                    backgroundColor: danger + "14",
-                    border: "1px solid " + danger + "45",
-                    borderRadius: brand.radius,
-                  }}
-                >
-                  <Icons.AlertCircle className="mt-0.5 h-4 w-4 shrink-0" aria-hidden="true" />
-                  {consentError}
-                </p>
-              ) : null}
               <ul className="mt-2">
                 {consents.map((c, i) => {
                   const on = c.status === "granted";
@@ -817,15 +782,14 @@ export default function Screen() {
                           className="text-xs"
                           style={{ color: on ? accent : muted, minWidth: 68, textAlign: "right" }}
                         >
-                          {savingConsentId === c.id ? "Saving…" : on ? "Granted" : "Withdrawn"}
+                          {on ? "Granted" : "Withdrawn"}
                         </span>
                         <button
                           type="button"
                           role="switch"
                           aria-checked={on}
                           aria-labelledby={"consent-" + c.id}
-                          aria-busy={savingConsentId === c.id}
-                          disabled={c.locked || savingConsentId === c.id}
+                          disabled={c.locked}
                           onClick={() => toggleConsent(c.id)}
                           className="v-focus v-toggle relative inline-flex h-6 w-11 shrink-0 items-center rounded-full"
                           style={{
@@ -833,8 +797,7 @@ export default function Screen() {
                               ? accent + (c.locked ? "55" : "cc")
                               : "rgba(233,237,233,0.08)",
                             border: "1px solid " + (on ? accent : line),
-                            cursor:
-                              c.locked || savingConsentId === c.id ? "not-allowed" : "pointer",
+                            cursor: c.locked ? "not-allowed" : "pointer",
                           }}
                         >
                           <span

@@ -1,24 +1,17 @@
 """Employee-scoped resources and the HR-Admin employee directory.
 
 - GET/POST/PATCH /admin/employees* is hr_admin-only (AC-007, AC-008, AC-009).
-- PATCH /admin/employees/{id} also assigns/reassigns the reporting hierarchy
-  (AC-010, AC-011).
 - /employees/{id}/goals uses manager scoping to self + direct reports (AC-005).
 """
 
-from fastapi import APIRouter, Depends, Query, status
+import secrets
+
+from fastapi import APIRouter, Depends, HTTPException, Query, status
 from sqlalchemy import or_
 from sqlalchemy.orm import Session
 
 from app.database import get_db
 from app.deps import require_hr_admin, require_self_or_report
-from app.errors import (
-    EMPLOYEE_EMAIL_IN_USE,
-    EMPLOYEE_MANAGER_CYCLE,
-    EMPLOYEE_MANAGER_NOT_FOUND,
-    EMPLOYEE_MANAGER_SELF,
-    EMPLOYEE_NOT_FOUND,
-)
 from app.models import Employee
 from app.schemas import (
     EmployeeCreate,
@@ -27,26 +20,13 @@ from app.schemas import (
     EmployeeUpdate,
     StubResponse,
 )
-from app.services import create_employee as create_employee_service
-from app.services import creates_manager_cycle
+from app.security import hash_password
 
 router = APIRouter(tags=["employees"])
 
-_CREATE_RESPONSES = {
-    **EMPLOYEE_EMAIL_IN_USE.openapi_response(),
-    **EMPLOYEE_MANAGER_NOT_FOUND.openapi_response(),
-}
-
-_UPDATE_RESPONSES = {
-    **EMPLOYEE_NOT_FOUND.openapi_response(),
-    **EMPLOYEE_EMAIL_IN_USE.openapi_response(),
-    status.HTTP_422_UNPROCESSABLE_ENTITY: {
-        "description": (
-            f"{EMPLOYEE_MANAGER_NOT_FOUND.detail} / {EMPLOYEE_MANAGER_SELF.detail} / "
-            f"{EMPLOYEE_MANAGER_CYCLE.detail}"
-        )
-    },
-}
+_EMPLOYEE_NOT_FOUND = HTTPException(
+    status_code=status.HTTP_404_NOT_FOUND, detail="Employee not found"
+)
 
 
 def _email_in_use(db: Session, email: str, exclude_id: str | None = None) -> bool:
@@ -76,67 +56,85 @@ def list_employees(
     return EmployeeListResponse(items=items, total=total, page=page, page_size=page_size)
 
 
-@router.post(
-    "/admin/employees",
-    response_model=EmployeeOut,
-    status_code=status.HTTP_201_CREATED,
-    responses=_CREATE_RESPONSES,
-)
+@router.post("/admin/employees", response_model=EmployeeOut, status_code=status.HTTP_201_CREATED)
 def create_employee(
     body: EmployeeCreate,
     current: Employee = Depends(require_hr_admin),  # noqa: B008
     db: Session = Depends(get_db),  # noqa: B008
 ) -> EmployeeOut:
     if body.manager_id is not None and db.get(Employee, body.manager_id) is None:
-        raise EMPLOYEE_MANAGER_NOT_FOUND.raise_as_http()
+        raise HTTPException(
+            status_code=status.HTTP_422_UNPROCESSABLE_ENTITY,
+            detail="manager_id does not exist",
+        )
     if _email_in_use(db, body.email):
-        raise EMPLOYEE_EMAIL_IN_USE.raise_as_http()
+        raise HTTPException(status_code=status.HTTP_409_CONFLICT, detail="Email already in use")
 
-    # EmployeeCreate.model_config already forbids any field beyond this
-    # minimised set (AC-039, NFR-003); create_employee_service drops anything
-    # outside it too, so the same rule holds for a future bulk-import path
-    # that builds this same dict from a CSV row.
-    employee = create_employee_service(db, body.model_dump())
+    employee = Employee(
+        name=body.name,
+        email=body.email,
+        role=body.role,
+        manager_id=body.manager_id,
+        status="active",
+        # No login/invite flow exists yet for admin-created profiles; a
+        # random, never-disclosed hash satisfies the non-nullable column
+        # until that flow lands.
+        password_hash=hash_password(secrets.token_urlsafe(32)),
+    )
+    db.add(employee)
+    db.commit()
+    db.refresh(employee)
     return EmployeeOut.model_validate(employee)
 
 
-@router.patch(
-    "/admin/employees/{id}",
-    response_model=EmployeeOut,
-    responses=_UPDATE_RESPONSES,
-)
+def _creates_cycle(db: Session, employee_id: str, new_manager_id: str) -> bool:
+    """True if employee_id is an ancestor of new_manager_id, i.e. assigning
+    new_manager_id as employee_id's manager would close a reporting loop."""
+    visited: set[str] = set()
+    walker = db.get(Employee, new_manager_id)
+    while walker is not None:
+        if walker.id == employee_id:
+            return True
+        if walker.id in visited:
+            break
+        visited.add(walker.id)
+        walker = db.get(Employee, walker.manager_id) if walker.manager_id else None
+    return False
+
+
+@router.patch("/admin/employees/{id}", response_model=EmployeeOut)
 def update_employee(
     id: str,
     body: EmployeeUpdate,
     current: Employee = Depends(require_hr_admin),  # noqa: B008
     db: Session = Depends(get_db),  # noqa: B008
 ) -> EmployeeOut:
-    """Edit a profile or (re)assign its manager (AC-008, AC-010, AC-011).
-
-    Assigning ``manager_id`` -- whether the employee had none before or is
-    being moved from one manager to another -- is a single update to this
-    row: the previous manager's direct reports and the new manager's direct
-    reports are both just live queries over ``manager_id`` (see
-    ``app.services.direct_reports``), so both sides of the hierarchy reflect
-    the change with nothing further to update.
-    """
     employee = db.get(Employee, id)
     if employee is None:
-        raise EMPLOYEE_NOT_FOUND.raise_as_http()
+        raise _EMPLOYEE_NOT_FOUND
 
     data = body.model_dump(exclude_unset=True)
 
     if "email" in data and _email_in_use(db, data["email"], exclude_id=id):
-        raise EMPLOYEE_EMAIL_IN_USE.raise_as_http()
+        raise HTTPException(status_code=status.HTTP_409_CONFLICT, detail="Email already in use")
 
     if "manager_id" in data and data["manager_id"] is not None:
         new_manager_id = data["manager_id"]
         if new_manager_id == id:
-            raise EMPLOYEE_MANAGER_SELF.raise_as_http()
+            raise HTTPException(
+                status_code=status.HTTP_422_UNPROCESSABLE_ENTITY,
+                detail="An employee cannot be their own manager",
+            )
         if db.get(Employee, new_manager_id) is None:
-            raise EMPLOYEE_MANAGER_NOT_FOUND.raise_as_http()
-        if creates_manager_cycle(db, id, new_manager_id):
-            raise EMPLOYEE_MANAGER_CYCLE.raise_as_http()
+            raise HTTPException(
+                status_code=status.HTTP_422_UNPROCESSABLE_ENTITY,
+                detail="manager_id does not exist",
+            )
+        if _creates_cycle(db, id, new_manager_id):
+            raise HTTPException(
+                status_code=status.HTTP_422_UNPROCESSABLE_ENTITY,
+                detail="manager_id would create a reporting cycle",
+            )
 
     for field, value in data.items():
         setattr(employee, field, value)
